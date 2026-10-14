@@ -88,7 +88,8 @@ export const translations = {
     copyOrderBtn: "Copy Order Text",
     orderCopied: "Copied!",
     instagramNote: "Opens our Instagram Direct chat. Paste your copied order to send.",
-    igNoticeBefore: "Instagram doesn't allow external apps to auto-type into chat. Clicking below copies your order details automatically—just paste (Ctrl+V) in the chat box!",
+    igNoticeBefore:
+      'when you click checkout, instragam will open our page, just click (message) and paste the order from your clipboard! text not copied ? click "copy order text" .',
     igNoticeActiveTitle: "Order Copied to Clipboard!",
     igNoticeActiveDesc: "Instagram has opened to @pixelstore.jo. Simply tap the message box and choose Paste (Ctrl+V) to send your order!",
     igReopenBtn: "Re-open Instagram Chat",
@@ -197,7 +198,8 @@ export const translations = {
     copyOrderBtn: "نسخ نص الطلب",
     orderCopied: "تم النسخ!",
     instagramNote: "يفتح محادثة إنستغرام المباشرة معنا. قم بلصق نص الطلب للإرسال.",
-    igNoticeBefore: "تطبيق إنستغرام لا يدعم الكتابة التلقائية عبر الروابط. عند الضغط بالأسفل، يتم نسخ تفاصيل طلبك تلقائياً للحافظة—فقط قم بلصقها (Ctrl+V) في مربع الدردشة!",
+    igNoticeBefore:
+      'عند الضغط على إتمام الطلب، سيفتح إنستغرام صفحتنا، فقط اضغط على (مراسلة / message) والصق الطلب من الحافظة! لم يتم نسخ النص؟ اضغط على "نسخ نص الطلب" .',
     igNoticeActiveTitle: "تم نسخ تفاصيل الطلب للحافظة!",
     igNoticeActiveDesc: "تم فتح محادثة إنستغرام مع @pixelstore.jo. اضغط داخل مربع الرسالة واختر لصق (Paste / Ctrl+V) ثم إرسال!",
     igReopenBtn: "إعادة فتح محادثة إنستغرام",
