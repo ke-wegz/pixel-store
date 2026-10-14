@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Flame, Tag, FolderPlus, Trash2, Layers } from "lucide-react";
+import { Flame, Tag, FolderPlus, Trash2 } from "lucide-react";
 import iconSvg from "../assets/icon.svg";
 import { deleteDoc, doc, setDoc } from "firebase/firestore";
 import { db, GAMES_COLLECTION } from "../lib/firebase";
@@ -8,7 +8,7 @@ import { emptyGame, gameToPayload, slugify } from "../lib/gameMapper";
 import { useAuth } from "../hooks/useAuth";
 import { useGames } from "../hooks/useGames";
 import { useCategories } from "../hooks/useCategories";
-import { type Game, type GameCategory, getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
+import { type Game, getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
 
 const fieldClass =
   "w-full rounded-xl border border-cyber-border bg-cyber-surface px-3 py-2 text-sm text-white outline-none focus:border-cyber-electricBlue transition-colors";

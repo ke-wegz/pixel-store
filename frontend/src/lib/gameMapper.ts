@@ -1,5 +1,5 @@
 import type { DocumentData } from "firebase/firestore";
-import { CATEGORY_LABELS, type Game, type GameCategory } from "../types";
+import { CATEGORY_LABELS, type Game } from "../types";
 
 function asCategory(value: unknown): string {
   if (typeof value === "string" && value.trim()) {
