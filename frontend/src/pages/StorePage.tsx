@@ -59,36 +59,16 @@ export function StorePage() {
 
   const faqs = faqsData[lang];
 
-  // Merge custom categories with any category present in existing games
-  const shelfCategories = useMemo(() => {
-    const map = new Map<string, Category>();
-    for (const c of categories) {
-      map.set(c.id.toLowerCase(), c);
-    }
-    for (const g of games) {
-      const rawCat = (g.category || "").trim();
-      if (rawCat && !map.has(rawCat.toLowerCase())) {
-        const label = g.categoryLabel || rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
-        map.set(rawCat.toLowerCase(), {
-          id: rawCat.toLowerCase(),
-          nameEn: label,
-          nameAr: label,
-        });
-      }
-    }
-    return Array.from(map.values());
-  }, [categories, games]);
-
   const counts = useMemo(() => {
     const map: Record<string, number> = {
       all: games.length,
       sale: games.filter((g) => g.onSale).length,
     };
-    shelfCategories.forEach((cat) => {
+    categories.forEach((cat) => {
       map[cat.id] = games.filter((g) => matchesCategory(g, cat)).length;
     });
     return map;
-  }, [games, shelfCategories]);
+  }, [games, categories]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -99,7 +79,7 @@ export function StorePage() {
       } else if (category === "sale") {
         matchCat = Boolean(game.onSale);
       } else {
-        const activeCat = shelfCategories.find(
+        const activeCat = categories.find(
           (c) => c.id.toLowerCase() === category.toLowerCase()
         );
         matchCat = activeCat
@@ -113,7 +93,7 @@ export function StorePage() {
         game.description.toLowerCase().includes(q);
       return matchCat && matchQuery;
     });
-  }, [games, category, query, shelfCategories]);
+  }, [games, category, query, categories]);
 
   const detailsGame = games.find((g) => g.id === detailsId) ?? null;
 
@@ -289,7 +269,7 @@ export function StorePage() {
                   {padCount(counts.sale)}
                 </span>
               </button>
-              {shelfCategories.map((cat) => (
+              {categories.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
