@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Flame, Tag } from "lucide-react";
+import { Flame, Tag, FolderPlus, Trash2, Layers } from "lucide-react";
 import iconSvg from "../assets/icon.svg";
 import { deleteDoc, doc, setDoc } from "firebase/firestore";
 import { db, GAMES_COLLECTION } from "../lib/firebase";
 import { emptyGame, gameToPayload, slugify } from "../lib/gameMapper";
 import { useAuth } from "../hooks/useAuth";
 import { useGames } from "../hooks/useGames";
+import { useCategories } from "../hooks/useCategories";
 import { type Game, type GameCategory, getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
 
 const fieldClass =
@@ -15,6 +16,7 @@ const fieldClass =
 export function AdminPage() {
   const { user, ready, login, logout, configured } = useAuth();
   const { games, loading, error: firestoreError } = useGames();
+  const { categories, addCategory, deleteCategory } = useCategories();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
@@ -22,6 +24,13 @@ export function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Category management state
+  const [newCatEn, setNewCatEn] = useState("");
+  const [newCatAr, setNewCatAr] = useState("");
+  const [newCatId, setNewCatId] = useState("");
+  const [catBusy, setCatBusy] = useState(false);
+  const [catNotice, setCatNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function onLogin(e: FormEvent) {
     e.preventDefault();
@@ -148,6 +157,52 @@ export function AdminPage() {
 
   function patch<K extends keyof Game>(key: K, value: Game[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleCreateCategory(e: FormEvent) {
+    e.preventDefault();
+    if (!newCatEn.trim()) return;
+    setCatBusy(true);
+    setCatNotice(null);
+    try {
+      await addCategory({
+        id: newCatId.trim() || slugify(newCatEn),
+        nameEn: newCatEn.trim(),
+        nameAr: newCatAr.trim() || newCatEn.trim(),
+      });
+      setCatNotice({ type: "success", text: `✓ Category "${newCatEn}" added successfully!` });
+      setNewCatEn("");
+      setNewCatAr("");
+      setNewCatId("");
+      setTimeout(() => setCatNotice(null), 4000);
+    } catch (err) {
+      setCatNotice({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to add category.",
+      });
+    } finally {
+      setCatBusy(false);
+    }
+  }
+
+  async function handleRemoveCategory(id: string, name: string) {
+    const count = games.filter((g) => g.category.toLowerCase() === id.toLowerCase()).length;
+    const confirmMsg =
+      count > 0
+        ? `Category "${name}" is currently used by ${count} game(s). Are you sure you want to delete it?`
+        : `Delete category "${name}"?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      await deleteCategory(id);
+      setCatNotice({ type: "success", text: `✓ Category "${name}" deleted.` });
+      setTimeout(() => setCatNotice(null), 4000);
+    } catch (err) {
+      setCatNotice({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to delete category.",
+      });
+    }
   }
 
   return (
@@ -333,15 +388,22 @@ export function AdminPage() {
                 </label>
 
                 <label className="text-xs text-cyber-muted font-medium">
-                  Category
+                  Category *
                   <select
                     className={`${fieldClass} mt-1`}
                     value={form.category}
-                    onChange={(e) => patch("category", e.target.value as GameCategory)}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      const matched = categories.find((c) => c.id === selectedId);
+                      patch("category", selectedId);
+                      patch("categoryLabel", matched?.nameEn || selectedId);
+                    }}
                   >
-                    <option value="action">Action</option>
-                    <option value="story">Story</option>
-                    <option value="strategy">Strategy</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.nameEn} ({cat.nameAr})
+                      </option>
+                    ))}
                   </select>
                 </label>
 
@@ -654,6 +716,127 @@ export function AdminPage() {
                 </div>
               </div>
             </form>
+
+            {/* Separate Section: Manage Game Categories */}
+            <div className="rounded-2xl border border-cyber-border bg-cyber-surface/90 p-6 sm:p-8 shadow-2xl space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyber-border/70 pb-4">
+                <div>
+                  <h2 className="font-display text-xl font-bold text-white flex items-center gap-2">
+                    <FolderPlus className="w-5 h-5 text-cyber-electricBlue" />
+                    Manage Game Categories (تصنيفات الألعاب)
+                  </h2>
+                  <p className="text-xs text-cyber-muted mt-0.5">
+                    Separate section to create custom categories. New categories will instantly appear in the game editor dropdown and on the store shelf toolbar.
+                  </p>
+                </div>
+                <span className="font-mono text-xs px-3 py-1 rounded-full border border-cyber-electricBlue/40 bg-cyber-electricBlue/10 text-cyber-electricBlue font-bold">
+                  {categories.length} Categories Active
+                </span>
+              </div>
+
+              {catNotice && (
+                <div
+                  className={`rounded-xl border p-3 text-xs font-semibold animate-fadeIn ${
+                    catNotice.type === "success"
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                      : "border-cyber-neonPink/40 bg-cyber-neonPink/10 text-cyber-neonPink"
+                  }`}
+                >
+                  {catNotice.text}
+                </div>
+              )}
+
+              {/* Add Category Form */}
+              <form
+                onSubmit={handleCreateCategory}
+                className="grid gap-3.5 sm:grid-cols-3 bg-cyber-card/60 p-4 rounded-xl border border-cyber-border/70 items-end"
+              >
+                <label className="text-xs text-cyber-muted font-medium">
+                  Category Name (English) *
+                  <input
+                    className={`${fieldClass} mt-1`}
+                    placeholder="e.g. Racing, RPG, Horror"
+                    value={newCatEn}
+                    onChange={(e) => {
+                      setNewCatEn(e.target.value);
+                      if (!newCatId) setNewCatId(slugify(e.target.value));
+                    }}
+                    required
+                  />
+                </label>
+                <label className="text-xs text-cyber-muted font-medium">
+                  Category Name (Arabic / بالعربية) *
+                  <input
+                    className={`${fieldClass} mt-1`}
+                    placeholder="e.g. سباقات، تقمص أدوار، رعب"
+                    value={newCatAr}
+                    onChange={(e) => setNewCatAr(e.target.value)}
+                    required
+                  />
+                </label>
+                <div>
+                  <label className="text-xs text-cyber-muted font-medium block mb-1">
+                    Category ID (Slug)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      className={`${fieldClass} font-mono`}
+                      placeholder="e.g. racing"
+                      value={newCatId}
+                      onChange={(e) => setNewCatId(e.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      disabled={catBusy || !newCatEn.trim()}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyber-electricBlue to-cyber-neonPurple hover:opacity-95 text-white font-bold text-xs shrink-0 transition-all disabled:opacity-40 shadow-neon-blue"
+                    >
+                      {catBusy ? "Adding..." : "+ Add"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              {/* Existing Categories Cards */}
+              <div className="space-y-2.5">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-cyber-muted font-semibold block">
+                  Active Categories on Shelf:
+                </span>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {categories.map((cat) => {
+                    const gameCount = games.filter(
+                      (g) => g.category.toLowerCase() === cat.id.toLowerCase()
+                    ).length;
+                    return (
+                      <div
+                        key={cat.id}
+                        className="flex items-center justify-between p-3.5 rounded-xl bg-cyber-card border border-cyber-border/80 hover:border-cyber-electricBlue/40 transition-colors"
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-white text-sm">{cat.nameEn}</span>
+                            <span className="text-xs text-cyber-muted">({cat.nameAr})</span>
+                          </div>
+                          <div className="font-mono text-[10px] text-cyber-lightBlue mt-0.5">
+                            #{cat.id} •{" "}
+                            <span className="text-cyber-muted">
+                              {gameCount} {gameCount === 1 ? "game" : "games"}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCategory(cat.id, cat.nameEn)}
+                          className="p-1.5 rounded-lg text-cyber-muted hover:text-cyber-neonPink hover:bg-cyber-neonPink/10 transition-colors"
+                          title={`Delete category ${cat.nameEn}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
             {/* Live Firestore Catalog Table */}
             <div className="rounded-2xl border border-cyber-border bg-cyber-surface/90 overflow-hidden shadow-2xl">

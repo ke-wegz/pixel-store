@@ -1,9 +1,9 @@
 import type { DocumentData } from "firebase/firestore";
 import { CATEGORY_LABELS, type Game, type GameCategory } from "../types";
 
-function asCategory(value: unknown): GameCategory {
-  if (value === "story" || value === "action" || value === "strategy") {
-    return value;
+function asCategory(value: unknown): string {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim().toLowerCase();
   }
   return "action";
 }
@@ -16,7 +16,7 @@ export function gameFromDoc(id: string, data: DocumentData): Game {
     tagCode: String(data.tagCode ?? ""),
     abbrev: String(data.abbrev ?? ""),
     category,
-    categoryLabel: String(data.categoryLabel ?? CATEGORY_LABELS[category]),
+    categoryLabel: String(data.categoryLabel ?? CATEGORY_LABELS[category] ?? category),
     subtitle: String(data.subtitle ?? ""),
     price: Number(data.price ?? 0),
     coverClass: String(data.coverClass ?? "from-[#2b1747] to-[#130726]"),

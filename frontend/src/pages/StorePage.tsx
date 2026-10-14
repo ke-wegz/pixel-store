@@ -25,12 +25,14 @@ import { useGames } from "../hooks/useGames";
 import { useLanguage } from "../context/LanguageContext";
 import { faqsData } from "../lib/translations";
 import { waLink } from "../lib/messaging";
+import { useCategories } from "../hooks/useCategories";
 import type { GameCategory } from "../types";
 
 type ShelfFilter = "all" | "sale" | GameCategory;
 
 export function StorePage() {
   const { games, loading, error } = useGames();
+  const { categories } = useCategories();
   const { addToShortlist } = useCart();
   const { isAr, lang, t } = useLanguage();
 
@@ -42,16 +44,18 @@ export function StorePage() {
 
   const faqs = faqsData[lang];
 
-  const counts = useMemo(
-    () => ({
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {
       all: games.length,
       sale: games.filter((g) => g.onSale).length,
-      story: games.filter((g) => g.category === "story").length,
-      action: games.filter((g) => g.category === "action").length,
-      strategy: games.filter((g) => g.category === "strategy").length,
-    }),
-    [games],
-  );
+    };
+    categories.forEach((cat) => {
+      map[cat.id] = games.filter(
+        (g) => g.category.toLowerCase() === cat.id.toLowerCase()
+      ).length;
+    });
+    return map;
+  }, [games, categories]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -60,8 +64,8 @@ export function StorePage() {
         category === "all"
           ? true
           : category === "sale"
-            ? Boolean(game.onSale)
-            : game.category === category;
+          ? Boolean(game.onSale)
+          : game.category.toLowerCase() === category.toLowerCase();
       const matchQuery =
         !q ||
         game.title.toLowerCase().includes(q) ||
@@ -245,15 +249,19 @@ export function StorePage() {
                   {padCount(counts.sale)}
                 </span>
               </button>
-              <button type="button" onClick={() => setCategory("story")} className={tabClass("story")}>
-                {t.story} <span className="ml-1 text-[10px] opacity-80">{padCount(counts.story)}</span>
-              </button>
-              <button type="button" onClick={() => setCategory("action")} className={tabClass("action")}>
-                {t.action} <span className="ml-1 text-[10px] opacity-80">{padCount(counts.action)}</span>
-              </button>
-              <button type="button" onClick={() => setCategory("strategy")} className={tabClass("strategy")}>
-                {t.strategy} <span className="ml-1 text-[10px] opacity-80">{padCount(counts.strategy)}</span>
-              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategory(cat.id)}
+                  className={tabClass(cat.id)}
+                >
+                  {isAr ? cat.nameAr : cat.nameEn}{" "}
+                  <span className="ml-1 text-[10px] opacity-80">
+                    {padCount(counts[cat.id] || 0)}
+                  </span>
+                </button>
+              ))}
             </div>
 
             <div className="relative block shrink-0 lg:w-72">

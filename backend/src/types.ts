@@ -1,4 +1,11 @@
-export type GameCategory = "story" | "action" | "strategy";
+export type GameCategory = string;
+
+export interface Category {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  createdAt?: string;
+}
 
 export interface Game {
   id: string;

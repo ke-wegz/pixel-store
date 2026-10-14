@@ -18,7 +18,9 @@ export function GameCard({ game, isFav, onToggleFav, onDetails, onAdd }: GameCar
       ? t.story
       : game.category === "strategy"
       ? t.strategy
-      : t.action;
+      : game.category === "action"
+      ? t.action
+      : game.categoryLabel || game.category.toUpperCase();
 
   const discount = getDiscountPercent(game);
   const activePrice = getActivePrice(game);

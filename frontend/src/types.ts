@@ -1,4 +1,17 @@
-export type GameCategory = "story" | "action" | "strategy";
+export type GameCategory = string;
+
+export interface Category {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  createdAt?: string;
+}
+
+export const DEFAULT_CATEGORIES: Category[] = [
+  { id: "action", nameEn: "Action", nameAr: "أكشن" },
+  { id: "story", nameEn: "Story", nameAr: "قصة" },
+  { id: "strategy", nameEn: "Strategy", nameAr: "استراتيجية" },
+];
 
 export interface Game {
   id: string;
@@ -27,7 +40,7 @@ export interface ShortlistItem extends Game {
   qty: number;
 }
 
-export const CATEGORY_LABELS: Record<GameCategory, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   story: "Story",
   action: "Action",
   strategy: "Strategy",

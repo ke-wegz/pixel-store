@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, MessageCircle, ShoppingBag, X } from "lucide-react";
+import { Check, CheckCircle2, Copy, ExternalLink, MessageCircle, ShoppingBag, X } from "lucide-react";
 import { Instagram } from "./icons/Instagram";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -11,6 +11,7 @@ export function ShortlistDrawer() {
   const { isAr, t } = useLanguage();
   const [platform, setPlatform] = useState<"whatsapp" | "instagram">("whatsapp");
   const [copied, setCopied] = useState(false);
+  const [showIgGuide, setShowIgGuide] = useState(false);
 
   if (!drawerOpen) return null;
 
@@ -34,6 +35,14 @@ export function ShortlistDrawer() {
     await copyTextToClipboard(orderMessage);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
+  }
+
+  async function handleInstagramCheckout() {
+    await copyTextToClipboard(orderMessage);
+    setCopied(true);
+    setShowIgGuide(true);
+    window.open(igHref, "_blank", "noopener,noreferrer");
+    setTimeout(() => setCopied(false), 4000);
   }
 
   return (
@@ -176,46 +185,95 @@ export function ShortlistDrawer() {
                 <span>{t.checkoutWhatsApp}</span>
               </a>
             ) : (
-              <div className="space-y-2">
-                <a
-                  href={igHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    void copyTextToClipboard(orderMessage);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 3000);
-                  }}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-95 text-white font-extrabold text-sm tracking-wide shadow-lg shadow-[#fd1d1d]/25 transition-all flex items-center justify-center gap-2"
+              <div className="space-y-2.5">
+                {/* Pre-checkout informative note for Instagram */}
+                <div className="rounded-xl border border-cyber-electricBlue/30 bg-cyber-electricBlue/10 p-2.5 text-[11px] text-cyber-lightBlue flex items-start gap-2">
+                  <span className="text-sm leading-none shrink-0 mt-0.5">💡</span>
+                  <p className="leading-snug">{t.igNoticeBefore}</p>
+                </div>
+
+                {/* Primary Action Button */}
+                <button
+                  type="button"
+                  onClick={handleInstagramCheckout}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-95 text-white font-extrabold text-sm tracking-wide shadow-lg shadow-[#fd1d1d]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Instagram className="w-4 h-4" />
                   <span>{t.checkoutInstagram}</span>
-                </a>
-                <div className="flex items-center justify-between gap-2 px-1 text-[11px] text-cyber-muted">
-                  <span className="leading-tight">{t.instagramNote}</span>
-                  <button
-                    type="button"
-                    onClick={handleManualCopy}
-                    className="shrink-0 flex items-center gap-1 rounded-md border border-cyber-border bg-cyber-card px-2 py-1 text-[10px] font-mono font-semibold text-cyber-lightBlue hover:text-white hover:border-cyber-electricBlue transition-all"
-                    title={t.copyOrderBtn}
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span className="text-emerald-400">{t.orderCopied}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        <span>{t.copyOrderBtn}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                </button>
+
+                {/* Post-click Guidance Card */}
+                {showIgGuide ? (
+                  <div className="rounded-xl border border-emerald-500/40 bg-gradient-to-b from-emerald-950/40 to-cyber-card p-3 space-y-2.5 animate-fadeIn">
+                    <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span>{t.igNoticeActiveTitle}</span>
+                    </div>
+                    <p className="text-[11px] text-cyber-muted leading-relaxed">
+                      {t.igNoticeActiveDesc}
+                    </p>
+
+                    {/* Live Order Preview Box */}
+                    <div className="rounded-lg bg-cyber-surface/90 border border-cyber-border p-2 font-mono text-[10px] text-cyber-electricBlue max-h-24 overflow-y-auto whitespace-pre-line select-all">
+                      {orderMessage}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleManualCopy}
+                        className="flex-1 py-2 px-2.5 rounded-lg border border-cyber-border bg-cyber-surface hover:bg-cyber-card text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">{t.orderCopied}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{t.copyOrderBtn}</span>
+                          </>
+                        )}
+                      </button>
+                      <a
+                        href={igHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2 px-3 rounded-lg bg-gradient-to-r from-[#833ab4] to-[#fd1d1d] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>{t.igReopenBtn}</span>
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 px-1 text-[11px] text-cyber-muted">
+                    <span className="leading-tight">{t.instagramNote}</span>
+                    <button
+                      type="button"
+                      onClick={handleManualCopy}
+                      className="shrink-0 flex items-center gap-1 rounded-md border border-cyber-border bg-cyber-card px-2 py-1 text-[10px] font-mono font-semibold text-cyber-lightBlue hover:text-white hover:border-cyber-electricBlue transition-all cursor-pointer"
+                      title={t.copyOrderBtn}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span className="text-emerald-400">{t.orderCopied}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>{t.copyOrderBtn}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {copied && (
+            {copied && !showIgGuide && (
               <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-center text-xs font-semibold text-emerald-300 animate-fadeIn">
                 {t.copiedOrderToast}
               </div>
