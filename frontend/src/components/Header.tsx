@@ -15,7 +15,7 @@ import { Instagram } from "./icons/Instagram";
 import iconSvg from "../assets/icon.svg";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
-import { waLink, igDirectLink } from "../lib/messaging";
+import { waLink, igDirectLink, openInstagramDirect } from "../lib/messaging";
 
 export function Header() {
   const { totalCount, openDrawer } = useCart();
@@ -106,9 +106,17 @@ export function Header() {
                   ? "مرحباً متجر بيكسل! أود الاستفسار عن الألعاب المتوفرة للطلب."
                   : "Hello Pixel Store! I want to order an offline game."
               )}
+              onClick={(e) => {
+                e.preventDefault();
+                openInstagramDirect(
+                  isAr
+                    ? "مرحباً متجر بيكسل! أود الاستفسار عن الألعاب المتوفرة للطلب."
+                    : "Hello Pixel Store! I want to order an offline game."
+                );
+              }}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-full border border-cyber-neonPink/40 bg-cyber-card/70 px-3 py-1.5 text-xs font-semibold text-cyber-neonPink transition-all hover:border-cyber-neonPink hover:bg-cyber-neonPink/20 hover:text-white shadow-sm"
+              className="flex items-center gap-1.5 rounded-full border border-cyber-neonPink/40 bg-cyber-card/70 px-3 py-1.5 text-xs font-semibold text-cyber-neonPink transition-all hover:border-cyber-neonPink hover:bg-cyber-neonPink/20 hover:text-white shadow-sm cursor-pointer"
               title="Message on Instagram"
             >
               <Instagram className="w-3.5 h-3.5 text-cyber-neonPink" />
@@ -200,9 +208,17 @@ export function Header() {
                   ? "مرحباً متجر بيكسل! أود الاستفسار عن الألعاب."
                   : "Hello Pixel Store! I want to order."
               )}
+              onClick={(e) => {
+                e.preventDefault();
+                openInstagramDirect(
+                  isAr
+                    ? "مرحباً متجر بيكسل! أود الاستفسار عن الألعاب."
+                    : "Hello Pixel Store! I want to order."
+                );
+              }}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-2.5 rounded-lg bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-center font-bold text-xs text-white shadow-sm flex items-center justify-center gap-1.5"
+              className="py-2.5 rounded-lg bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-center font-bold text-xs text-white shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Instagram className="w-3.5 h-3.5" />
               <span>Instagram</span>

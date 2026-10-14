@@ -3,7 +3,7 @@ import { Check, CheckCircle2, Copy, ExternalLink, MessageCircle, ShoppingBag, X 
 import { Instagram } from "./icons/Instagram";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
-import { waLink, igDirectLink, copyTextToClipboard } from "../lib/messaging";
+import { waLink, igDirectLink, openInstagramDirect, copyTextToClipboard } from "../lib/messaging";
 import { getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
 
 export function ShortlistDrawer() {
@@ -41,7 +41,7 @@ export function ShortlistDrawer() {
     await copyTextToClipboard(orderMessage);
     setCopied(true);
     setShowIgGuide(true);
-    window.open(igHref, "_blank", "noopener,noreferrer");
+    openInstagramDirect(orderMessage);
     setTimeout(() => setCopied(false), 4000);
   }
 
@@ -238,9 +238,13 @@ export function ShortlistDrawer() {
                       </button>
                       <a
                         href={igHref}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openInstagramDirect(orderMessage);
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="py-2 px-3 rounded-lg bg-gradient-to-r from-[#833ab4] to-[#fd1d1d] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90"
+                        className="py-2 px-3 rounded-lg bg-gradient-to-r from-[#833ab4] to-[#fd1d1d] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                         <span>{t.igReopenBtn}</span>
