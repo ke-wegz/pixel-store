@@ -44,23 +44,29 @@ export function gameFromDoc(id: string, data: DocumentData): Game {
 }
 
 export function gameToPayload(game: Game): Record<string, unknown> {
+  const category = (game.category || "action").trim().toLowerCase();
+  const categoryLabel =
+    (game.categoryLabel && game.categoryLabel.trim()) ||
+    CATEGORY_LABELS[category] ||
+    category.charAt(0).toUpperCase() + category.slice(1);
+
   const payload: Record<string, unknown> = {
-    title: game.title,
-    tagCode: game.tagCode,
-    abbrev: game.abbrev,
-    category: game.category,
-    categoryLabel: CATEGORY_LABELS[game.category],
-    subtitle: game.subtitle,
-    price: Number(game.price),
-    coverClass: game.coverClass,
-    accentColor: game.accentColor,
-    description: game.description,
-    specs: game.specs,
-    coverImage: game.coverImage,
-    inStock: game.inStock,
-    featured: game.featured,
-    isNew: game.isNew,
-    onSale: game.onSale,
+    title: game.title || "",
+    tagCode: game.tagCode || "",
+    abbrev: game.abbrev || "",
+    category,
+    categoryLabel,
+    subtitle: game.subtitle || "",
+    price: Number(game.price) || 0,
+    coverClass: game.coverClass || "from-[#2b1747] to-[#130726]",
+    accentColor: game.accentColor || "#00d2ff",
+    description: game.description || "",
+    specs: game.specs || "",
+    coverImage: game.coverImage || "",
+    inStock: Boolean(game.inStock),
+    featured: Boolean(game.featured),
+    isNew: Boolean(game.isNew),
+    onSale: Boolean(game.onSale),
   };
   if (game.originalPrice !== undefined && game.originalPrice !== null && !isNaN(game.originalPrice)) {
     payload.originalPrice = Number(game.originalPrice);
@@ -77,6 +83,14 @@ export function gameToPayload(game: Game): Record<string, unknown> {
   } else {
     payload.discountPercent = null;
   }
+
+  // Sanitize: ensure no undefined keys exist so Firestore setDoc never throws
+  for (const key of Object.keys(payload)) {
+    if (payload[key] === undefined) {
+      delete payload[key];
+    }
+  }
+
   return payload;
 }
 
