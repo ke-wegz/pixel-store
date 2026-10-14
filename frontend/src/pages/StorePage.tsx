@@ -26,9 +26,24 @@ import { useLanguage } from "../context/LanguageContext";
 import { faqsData } from "../lib/translations";
 import { waLink } from "../lib/messaging";
 import { useCategories } from "../hooks/useCategories";
-import type { GameCategory } from "../types";
+import type { Category, Game, GameCategory } from "../types";
 
 type ShelfFilter = "all" | "sale" | GameCategory;
+
+function matchesCategory(game: Game, cat: Category): boolean {
+  const gCat = (game.category || "").trim().toLowerCase();
+  const gLabel = (game.categoryLabel || "").trim().toLowerCase();
+  const cId = (cat.id || "").trim().toLowerCase();
+  const cEn = (cat.nameEn || "").trim().toLowerCase();
+  const cAr = (cat.nameAr || "").trim().toLowerCase();
+
+  return (
+    gCat === cId ||
+    gCat === cEn ||
+    (cAr !== "" && gCat === cAr) ||
+    (gLabel !== "" && (gLabel === cId || gLabel === cEn || gLabel === cAr))
+  );
+}
 
 export function StorePage() {
   const { games, loading, error } = useGames();
@@ -44,28 +59,53 @@ export function StorePage() {
 
   const faqs = faqsData[lang];
 
+  // Merge custom categories with any category present in existing games
+  const shelfCategories = useMemo(() => {
+    const map = new Map<string, Category>();
+    for (const c of categories) {
+      map.set(c.id.toLowerCase(), c);
+    }
+    for (const g of games) {
+      const rawCat = (g.category || "").trim();
+      if (rawCat && !map.has(rawCat.toLowerCase())) {
+        const label = g.categoryLabel || rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
+        map.set(rawCat.toLowerCase(), {
+          id: rawCat.toLowerCase(),
+          nameEn: label,
+          nameAr: label,
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [categories, games]);
+
   const counts = useMemo(() => {
     const map: Record<string, number> = {
       all: games.length,
       sale: games.filter((g) => g.onSale).length,
     };
-    categories.forEach((cat) => {
-      map[cat.id] = games.filter(
-        (g) => g.category.toLowerCase() === cat.id.toLowerCase()
-      ).length;
+    shelfCategories.forEach((cat) => {
+      map[cat.id] = games.filter((g) => matchesCategory(g, cat)).length;
     });
     return map;
-  }, [games, categories]);
+  }, [games, shelfCategories]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     return games.filter((game) => {
-      const matchCat =
-        category === "all"
-          ? true
-          : category === "sale"
-          ? Boolean(game.onSale)
+      let matchCat = true;
+      if (category === "all") {
+        matchCat = true;
+      } else if (category === "sale") {
+        matchCat = Boolean(game.onSale);
+      } else {
+        const activeCat = shelfCategories.find(
+          (c) => c.id.toLowerCase() === category.toLowerCase()
+        );
+        matchCat = activeCat
+          ? matchesCategory(game, activeCat)
           : game.category.toLowerCase() === category.toLowerCase();
+      }
       const matchQuery =
         !q ||
         game.title.toLowerCase().includes(q) ||
@@ -73,7 +113,7 @@ export function StorePage() {
         game.description.toLowerCase().includes(q);
       return matchCat && matchQuery;
     });
-  }, [games, category, query]);
+  }, [games, category, query, shelfCategories]);
 
   const detailsGame = games.find((g) => g.id === detailsId) ?? null;
 
@@ -232,7 +272,7 @@ export function StorePage() {
           <div className="mt-10 flex flex-col gap-4 border-y border-cyber-border/80 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0 font-mono text-xs" role="tablist">
               <button type="button" onClick={() => setCategory("all")} className={tabClass("all")}>
-                {t.allGames} <span className="ml-1 text-[10px] opacity-80">{counts.all}</span>
+                {t.allGames} <span className="ml-1 text-[10px] opacity-80">{padCount(counts.all)}</span>
               </button>
               <button
                 type="button"
@@ -249,7 +289,7 @@ export function StorePage() {
                   {padCount(counts.sale)}
                 </span>
               </button>
-              {categories.map((cat) => (
+              {shelfCategories.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"

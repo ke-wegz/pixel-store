@@ -186,7 +186,12 @@ export function AdminPage() {
   }
 
   async function handleRemoveCategory(id: string, name: string) {
-    const count = games.filter((g) => g.category.toLowerCase() === id.toLowerCase()).length;
+    const count = games.filter(
+      (g) =>
+        g.category.toLowerCase() === id.toLowerCase() ||
+        g.category.toLowerCase() === name.toLowerCase() ||
+        (g.categoryLabel && g.categoryLabel.toLowerCase() === name.toLowerCase())
+    ).length;
     const confirmMsg =
       count > 0
         ? `Category "${name}" is currently used by ${count} game(s). Are you sure you want to delete it?`
@@ -804,7 +809,10 @@ export function AdminPage() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {categories.map((cat) => {
                     const gameCount = games.filter(
-                      (g) => g.category.toLowerCase() === cat.id.toLowerCase()
+                      (g) =>
+                        g.category.toLowerCase() === cat.id.toLowerCase() ||
+                        g.category.toLowerCase() === cat.nameEn.toLowerCase() ||
+                        (g.categoryLabel && g.categoryLabel.toLowerCase() === cat.nameEn.toLowerCase())
                     ).length;
                     return (
                       <div
