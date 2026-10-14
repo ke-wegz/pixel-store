@@ -9,89 +9,58 @@ export function waLink(text: string): string {
 }
 
 
-export type PlatformType = "desktop" | "android" | "ios";
-
-export function getMobilePlatform(): PlatformType {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return "desktop";
-  }
-  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || "";
-  if (/android/i.test(ua)) {
-    return "android";
-  }
-  if (
-    /iPad|iPhone|iPod/.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  ) {
-    return "ios";
-  }
-  return "desktop";
+export function igDirectLink(usernameOrText?: string): string {
+  const username =
+    usernameOrText && !usernameOrText.includes(" ") && !usernameOrText.includes("\n") && !usernameOrText.startsWith("http")
+      ? usernameOrText.replace(/^@/, "").trim()
+      : INSTAGRAM_USERNAME;
+  return `https://www.instagram.com/${username}/`;
 }
 
-export function igDirectWebLink(textOrUrl?: string): string {
-  if (textOrUrl && (textOrUrl.startsWith("http://") || textOrUrl.startsWith("https://"))) {
-    return textOrUrl;
-  }
-  const base = `https://ig.me/m/${INSTAGRAM_USERNAME}`;
-  if (textOrUrl) {
-    return `${base}?text=${encodeURIComponent(textOrUrl)}`;
-  }
-  return base;
-}
-
-export function getAndroidInstagramIntent(textOrUrl?: string, fallbackUrl?: string): string {
-  const webUrl = fallbackUrl || igDirectWebLink(textOrUrl);
-  const hostAndPath = webUrl.replace(/^https?:\/\//, "");
-  return `intent://${hostAndPath}#Intent;package=com.instagram.android;scheme=https;S.browser_fallback_url=${encodeURIComponent(webUrl)};end`;
-}
-
-export function igDirectLink(textOrUrl?: string): string {
-  const webUrl = igDirectWebLink(textOrUrl);
-  const platform = getMobilePlatform();
-  if (platform === "android") {
-    return getAndroidInstagramIntent(undefined, webUrl);
-  }
-  return webUrl;
+export function igProfileLink(username: string = INSTAGRAM_USERNAME): string {
+  return `https://www.instagram.com/${username}/`;
 }
 
 /**
- * Opens Instagram / ig.me direct link with cross-platform fallback:
- * - Desktop: Open the web link in a new tab (window.open(webUrl, '_blank')). Do not use app schemes.
- * - Android: Use the Android Intent URI (intent://...) with a built-in web fallback URL to open the Instagram app directly.
- * - iOS: Try instagram:// first; if document.hidden is still false after 1.5 seconds, redirect to the web URL.
+ * Opens Instagram directly using the execution pattern:
+ * - Mobile (Android / iOS): Attempts native protocol (instagram://user?username=...) with 1.5s fallback to web page
+ * - Desktop: Standard web open in new tab (window.open(webUrl, '_blank', 'noopener,noreferrer'))
  */
-export function openInstagramDirect(textOrUrl?: string): void {
-  const webUrl = igDirectWebLink(textOrUrl);
-  const platform = getMobilePlatform();
+export function openInstagramDirect(usernameOrText?: string): void {
+  const username =
+    usernameOrText && !usernameOrText.includes(" ") && !usernameOrText.includes("\n") && !usernameOrText.startsWith("http")
+      ? usernameOrText.replace(/^@/, "").trim()
+      : INSTAGRAM_USERNAME;
 
-  if (platform === "desktop") {
-    window.open(webUrl, "_blank");
-    return;
-  }
+  const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
-  if (platform === "android") {
-    const intentUrl = getAndroidInstagramIntent(undefined, webUrl);
-    window.location.href = intentUrl;
-    return;
-  }
+  const appUrl = `instagram://user?username=${username}`;
+  const webUrl = `https://www.instagram.com/${username}/`;
 
-  if (platform === "ios") {
-    window.location.href = "instagram://";
+  if (isAndroid || isIOS) {
+    // 1. Direct location change to the custom protocol
+    window.location.href = appUrl;
+
+    // 2. Fallback to web page only if the user is still on this tab
+    const start = Date.now();
     setTimeout(() => {
-      if (typeof document !== "undefined" && !document.hidden) {
+      // If the Instagram app opened, the tab went to background (document.hidden = true)
+      if (typeof document !== "undefined" && !document.hidden && Date.now() - start < 2500) {
         window.location.href = webUrl;
       }
     }, 1500);
-    return;
+  } else {
+    // Desktop: standard web open
+    window.open(webUrl, "_blank", "noopener,noreferrer");
   }
 }
 
 export const openInstagram = openInstagramDirect;
 export const openInstagramLink = openInstagramDirect;
-
-export function igProfileLink(): string {
-  return `https://instagram.com/${INSTAGRAM_USERNAME}`;
-}
 
 export async function copyTextToClipboard(text: string): Promise<boolean> {
   if (navigator?.clipboard?.writeText) {
