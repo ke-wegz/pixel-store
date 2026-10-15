@@ -19,6 +19,8 @@ export interface Game {
   isNew: boolean;
   onSale: boolean;
   originalPrice?: number;
+  salePrice?: number;
+  discountPercent?: number;
   createdAt?: string;
   updatedAt?: string;
 }

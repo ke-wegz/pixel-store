@@ -100,6 +100,14 @@ gamesRouter.post("/", async (req: Request, res: Response) => {
       gameData.originalPrice !== undefined && gameData.originalPrice !== null
         ? Number(gameData.originalPrice)
         : undefined,
+    salePrice:
+      gameData.salePrice !== undefined && gameData.salePrice !== null
+        ? Number(gameData.salePrice)
+        : undefined,
+    discountPercent:
+      gameData.discountPercent !== undefined && gameData.discountPercent !== null
+        ? Number(gameData.discountPercent)
+        : undefined,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

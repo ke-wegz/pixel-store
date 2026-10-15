@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Game, ShortlistItem } from "../types";
+import { type Game, type ShortlistItem, getActivePrice } from "../types";
 
 interface CartContextValue {
   shortlist: ShortlistItem[];
@@ -28,7 +28,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(() => {
     const totalCount = shortlist.reduce((sum, item) => sum + item.qty, 0);
     const totalPrice = shortlist.reduce(
-      (sum, item) => sum + item.price * item.qty,
+      (sum, item) => sum + getActivePrice(item) * item.qty,
       0,
     );
 

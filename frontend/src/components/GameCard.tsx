@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Heart, Plus } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-import type { Game } from "../types";
+import { type Game, getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
 
 interface GameCardProps {
   game: Game;
@@ -19,6 +19,10 @@ export function GameCard({ game, isFav, onToggleFav, onDetails, onAdd }: GameCar
       : game.category === "strategy"
       ? t.strategy
       : t.action;
+
+  const discount = getDiscountPercent(game);
+  const activePrice = getActivePrice(game);
+  const originalPrice = getOriginalPrice(game);
 
   return (
     <article
@@ -58,9 +62,7 @@ export function GameCard({ game, isFav, onToggleFav, onDetails, onAdd }: GameCar
           {game.onSale && (
             <span className="rounded bg-cyber-neonPink px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-white shadow-neon-pink">
               {t.saleTag}
-              {game.originalPrice && game.originalPrice > game.price
-                ? ` -${Math.round((1 - game.price / game.originalPrice) * 100)}%`
-                : ""}
+              {discount > 0 ? ` -${discount}%` : ""}
             </span>
           )}
           {!game.inStock && (
@@ -108,16 +110,16 @@ export function GameCard({ game, isFav, onToggleFav, onDetails, onAdd }: GameCar
 
         <div className="mt-5 flex items-center justify-between pt-3 border-t border-cyber-border/60">
           <div>
-            {game.onSale && game.originalPrice && game.originalPrice > game.price ? (
+            {game.onSale && discount > 0 ? (
               <div className="flex items-baseline gap-1.5 flex-wrap">
                 <span
                   className="font-mono text-lg font-extrabold text-cyber-neonPink"
                   data-testid={`text-price-${game.id}`}
                 >
-                  {game.price.toFixed(2)} {t.currency}
+                  {activePrice.toFixed(2)} {t.currency}
                 </span>
                 <span className="font-mono text-xs text-cyber-muted line-through">
-                  {game.originalPrice.toFixed(2)}
+                  {originalPrice.toFixed(2)}
                 </span>
               </div>
             ) : (
@@ -127,7 +129,7 @@ export function GameCard({ game, isFav, onToggleFav, onDetails, onAdd }: GameCar
                 }`}
                 data-testid={`text-price-${game.id}`}
               >
-                {game.price.toFixed(2)} {t.currency}
+                {activePrice.toFixed(2)} {t.currency}
               </span>
             )}
           </div>

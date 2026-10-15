@@ -32,6 +32,14 @@ export function gameFromDoc(id: string, data: DocumentData): Game {
       data.originalPrice !== undefined && data.originalPrice !== null && data.originalPrice !== ""
         ? Number(data.originalPrice)
         : undefined,
+    salePrice:
+      data.salePrice !== undefined && data.salePrice !== null && data.salePrice !== ""
+        ? Number(data.salePrice)
+        : undefined,
+    discountPercent:
+      data.discountPercent !== undefined && data.discountPercent !== null && data.discountPercent !== ""
+        ? Number(data.discountPercent)
+        : undefined,
   };
 }
 
@@ -43,7 +51,7 @@ export function gameToPayload(game: Game): Record<string, unknown> {
     category: game.category,
     categoryLabel: CATEGORY_LABELS[game.category],
     subtitle: game.subtitle,
-    price: game.price,
+    price: Number(game.price),
     coverClass: game.coverClass,
     accentColor: game.accentColor,
     description: game.description,
@@ -58,6 +66,16 @@ export function gameToPayload(game: Game): Record<string, unknown> {
     payload.originalPrice = Number(game.originalPrice);
   } else {
     payload.originalPrice = null;
+  }
+  if (game.salePrice !== undefined && game.salePrice !== null && !isNaN(game.salePrice)) {
+    payload.salePrice = Number(game.salePrice);
+  } else {
+    payload.salePrice = null;
+  }
+  if (game.discountPercent !== undefined && game.discountPercent !== null && !isNaN(game.discountPercent)) {
+    payload.discountPercent = Number(game.discountPercent);
+  } else {
+    payload.discountPercent = null;
   }
   return payload;
 }
@@ -82,6 +100,8 @@ export function emptyGame(): Game {
     isNew: false,
     onSale: false,
     originalPrice: undefined,
+    salePrice: undefined,
+    discountPercent: undefined,
   };
 }
 

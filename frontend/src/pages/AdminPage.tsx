@@ -7,7 +7,7 @@ import { db, GAMES_COLLECTION } from "../lib/firebase";
 import { emptyGame, gameToPayload, slugify } from "../lib/gameMapper";
 import { useAuth } from "../hooks/useAuth";
 import { useGames } from "../hooks/useGames";
-import type { Game, GameCategory } from "../types";
+import { type Game, type GameCategory, getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
 
 const fieldClass =
   "w-full rounded-xl border border-cyber-border bg-cyber-surface px-3 py-2 text-sm text-white outline-none focus:border-cyber-electricBlue transition-colors";
@@ -51,7 +51,20 @@ export function AdminPage() {
     setBusy(true);
     setNotice(null);
     try {
-      await setDoc(doc(db, GAMES_COLLECTION, id), gameToPayload({ ...form, id }), {
+      const payloadGame: Game = {
+        ...form,
+        id,
+        price: Number(form.price),
+        originalPrice: Number(form.price),
+        salePrice: form.onSale
+          ? Number(
+              form.salePrice ??
+                (form.price * (1 - (form.discountPercent || 25) / 100)).toFixed(2)
+            )
+          : undefined,
+        discountPercent: form.onSale ? Number(form.discountPercent || 25) : undefined,
+      };
+      await setDoc(doc(db, GAMES_COLLECTION, id), gameToPayload(payloadGame), {
         merge: true,
       });
       const actionName = editingId ? "updated" : "added";
@@ -94,7 +107,34 @@ export function AdminPage() {
   }
 
   function editGame(game: Game) {
-    setForm(game);
+    // If game has old format where originalPrice was greater than price:
+    if (game.onSale && game.originalPrice && game.originalPrice > game.price && !game.salePrice) {
+      const orig = game.originalPrice;
+      const sale = game.price;
+      const pct = Math.round((1 - sale / orig) * 100);
+      setForm({
+        ...game,
+        price: orig,
+        originalPrice: orig,
+        salePrice: sale,
+        discountPercent: pct,
+      });
+    } else {
+      const orig = game.price;
+      const pct =
+        game.discountPercent ||
+        (game.salePrice && orig > 0 ? Math.round((1 - game.salePrice / orig) * 100) : 25);
+      const sale =
+        game.salePrice ??
+        (game.onSale ? Number((orig * (1 - pct / 100)).toFixed(2)) : undefined);
+      setForm({
+        ...game,
+        price: orig,
+        originalPrice: orig,
+        salePrice: sale,
+        discountPercent: pct,
+      });
+    }
     setEditingId(game.id);
     setNotice(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -306,16 +346,31 @@ export function AdminPage() {
                 </label>
 
                 <label className="text-xs text-cyber-muted font-medium">
-                  Price in JOD *
+                  Price in JOD (Original / Regular Price) *
                   <input
                     className={`${fieldClass} mt-1 font-mono`}
                     type="number"
                     step="0.01"
                     min="0"
                     value={form.price}
-                    onChange={(e) => patch("price", Number(e.target.value))}
+                    onChange={(e) => {
+                      const newPrice = Number(e.target.value);
+                      const currentPct = form.discountPercent || 25;
+                      const calculatedSale = form.onSale
+                        ? Number((newPrice * (1 - currentPct / 100)).toFixed(2))
+                        : undefined;
+                      setForm((prev) => ({
+                        ...prev,
+                        price: newPrice,
+                        originalPrice: newPrice,
+                        salePrice: calculatedSale,
+                      }));
+                    }}
                     required
                   />
+                  <span className="text-[10px] text-cyber-muted block mt-1">
+                    Standard regular price for this game.
+                  </span>
                 </label>
 
                 <label className="text-xs text-cyber-muted font-medium">
@@ -399,13 +454,26 @@ export function AdminPage() {
                 </label>
 
                 {/* Dedicated Sale Field & Required Logic */}
-                <div className="sm:col-span-2 rounded-xl border border-cyber-neonPink/40 bg-cyber-card/60 p-4 space-y-3">
+                <div className="sm:col-span-2 rounded-xl border border-cyber-neonPink/40 bg-cyber-card/60 p-4 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyber-border/70 pb-3">
                     <label className="flex items-center gap-2.5 text-xs font-bold text-white cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={form.onSale}
-                        onChange={(e) => patch("onSale", e.target.checked)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          const pct = form.discountPercent || 25;
+                          const sale = checked
+                            ? Number((form.price * (1 - pct / 100)).toFixed(2))
+                            : undefined;
+                          setForm((prev) => ({
+                            ...prev,
+                            onSale: checked,
+                            discountPercent: checked ? pct : undefined,
+                            salePrice: sale,
+                            originalPrice: prev.price,
+                          }));
+                        }}
                         className="rounded accent-cyber-neonPink h-4 w-4"
                       />
                       <span className="text-cyber-neonPink font-mono uppercase tracking-wider text-sm flex items-center gap-1.5 font-extrabold">
@@ -415,70 +483,127 @@ export function AdminPage() {
                     </label>
                     {form.onSale && (
                       <span className="rounded-full bg-cyber-neonPink/20 border border-cyber-neonPink/60 px-3 py-0.5 font-mono text-[11px] font-bold text-cyber-neonPink shadow-neon-pink">
-                        🔥 SALE ACTIVE
+                        🔥 SALE ACTIVE: {form.discountPercent || 25}% OFF
                       </span>
                     )}
                   </div>
 
                   {form.onSale ? (
-                    <div className="grid gap-4 sm:grid-cols-2 pt-1">
-                      <label className="text-xs text-cyber-muted font-medium">
-                        Original / Regular Price in JOD (قبل الخصم)
-                        <input
-                          className={`${fieldClass} mt-1 font-mono`}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="e.g. 3.50 (regular price)"
-                          value={form.originalPrice ?? ""}
-                          onChange={(e) =>
-                            patch(
-                              "originalPrice",
-                              e.target.value === "" ? undefined : Number(e.target.value)
-                            )
-                          }
-                        />
-                        <span className="text-[10px] text-cyber-muted block mt-1">
-                          The regular crossed-out price shown to customers.
-                        </span>
-                      </label>
+                    <div className="space-y-4 pt-1">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {/* Option 1: Percentage Sale Slider */}
+                        <div className="rounded-xl bg-cyber-surface/90 border border-cyber-border/80 p-3.5 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-cyber-lightBlue font-semibold flex items-center gap-1.5">
+                              <Tag className="w-3.5 h-3.5 text-cyber-neonPink" />
+                              Sale Percentage Slider (نسبة الخصم)
+                            </span>
+                            <span className="font-mono font-extrabold text-cyber-neonPink text-sm bg-cyber-neonPink/20 border border-cyber-neonPink/40 px-2 py-0.5 rounded-lg shadow-sm">
+                              {form.discountPercent || 25}% OFF
+                            </span>
+                          </div>
 
-                      <div className="flex flex-col justify-between rounded-xl bg-cyber-surface/90 border border-cyber-border p-3 text-xs font-mono">
-                        <span className="text-cyber-muted uppercase text-[10px] font-bold flex items-center gap-1">
-                          <Tag className="w-3 h-3 text-cyber-neonPink" /> Discount Calculation Logic
-                        </span>
-                        {form.originalPrice && form.originalPrice > form.price ? (
-                          <div className="space-y-1 mt-1.5">
-                            <div className="text-cyber-neonPink font-extrabold text-sm flex items-center gap-1.5">
-                              <span>Save {Math.round((1 - form.price / form.originalPrice) * 100)}%</span>
-                              <span className="text-cyber-lightBlue text-xs font-normal">
-                                ({(form.originalPrice - form.price).toFixed(2)} JOD off)
-                              </span>
-                            </div>
-                            <div className="text-cyber-muted text-[11px]">
-                              Was <span className="line-through">{form.originalPrice.toFixed(2)} JOD</span> → Sale Price:{" "}
-                              <span className="text-white font-bold">{form.price.toFixed(2)} JOD</span>
-                            </div>
+                          <input
+                            type="range"
+                            min="5"
+                            max="90"
+                            step="5"
+                            value={form.discountPercent || 25}
+                            onChange={(e) => {
+                              const pct = Number(e.target.value);
+                              const calculatedSale = Number((form.price * (1 - pct / 100)).toFixed(2));
+                              setForm((prev) => ({
+                                ...prev,
+                                discountPercent: pct,
+                                salePrice: calculatedSale,
+                                originalPrice: prev.price,
+                              }));
+                            }}
+                            className="w-full accent-cyber-neonPink cursor-pointer h-2.5 bg-cyber-card rounded-lg"
+                          />
+
+                          <div className="flex justify-between text-[10px] font-mono text-cyber-muted px-0.5">
+                            <span>5%</span>
+                            <span>25%</span>
+                            <span>50%</span>
+                            <span>75%</span>
+                            <span>90%</span>
                           </div>
-                        ) : (
-                          <div className="text-cyber-muted text-[11px] mt-1.5 leading-relaxed">
-                            Sale price: <span className="text-cyber-neonPink font-bold">{form.price.toFixed(2)} JOD</span>
-                            {form.originalPrice && form.originalPrice <= form.price ? (
-                              <span className="text-amber-400 block mt-1 font-semibold">
-                                ⚠ Original price must be higher than sale price ({form.price.toFixed(2)} JOD) to display discount badge.
-                              </span>
-                            ) : (
-                              <span className="block mt-0.5 text-cyber-muted">
-                                Enter the original price on the left to show the strikethrough discount!
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        </div>
+
+                        {/* Option 2: Flat Sale Price Input */}
+                        <div className="rounded-xl bg-cyber-surface/90 border border-cyber-border/80 p-3.5 space-y-2">
+                          <label className="text-xs text-cyber-lightBlue font-semibold block">
+                            Flat Sale Price in JOD (السعر المخفض المباشر)
+                          </label>
+                          <input
+                            className={`${fieldClass} mt-1 font-mono`}
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            max={form.price > 0 ? form.price : undefined}
+                            placeholder="e.g. 1.50"
+                            value={
+                              form.salePrice !== undefined && form.salePrice !== null
+                                ? form.salePrice
+                                : Number((form.price * (1 - (form.discountPercent || 25) / 100)).toFixed(2))
+                            }
+                            onChange={(e) => {
+                              const sp = Number(e.target.value);
+                              const pct =
+                                form.price > 0
+                                  ? Math.max(1, Math.min(99, Math.round((1 - sp / form.price) * 100)))
+                                  : 0;
+                              setForm((prev) => ({
+                                ...prev,
+                                salePrice: sp,
+                                discountPercent: pct,
+                                originalPrice: prev.price,
+                              }));
+                            }}
+                          />
+                          <span className="text-[10px] text-cyber-muted block">
+                            Either slide the percentage on the left or type a flat sale price here.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Live Calculation & Breakdown */}
+                      <div className="rounded-xl bg-gradient-to-r from-cyber-card via-cyber-surface to-cyber-card border border-cyber-neonPink/40 p-3.5 text-xs font-mono">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyber-border/60 pb-2">
+                          <span className="text-cyber-muted uppercase text-[10px] font-bold">
+                            Live Customer Price Preview
+                          </span>
+                          <span className="rounded bg-cyber-neonPink px-2 py-0.5 text-[10px] font-extrabold text-white shadow-neon-pink">
+                            SALE -{form.discountPercent || 25}%
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-baseline gap-3">
+                          <span className="text-cyber-neonPink font-extrabold text-2xl">
+                            {(
+                              form.salePrice ??
+                              Number((form.price * (1 - (form.discountPercent || 25) / 100)).toFixed(2))
+                            ).toFixed(2)}{" "}
+                            JOD
+                          </span>
+                          <span className="text-cyber-muted line-through text-sm">
+                            was {form.price.toFixed(2)} JOD
+                          </span>
+                          <span className="text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded">
+                            Customer saves{" "}
+                            {(
+                              form.price -
+                              (form.salePrice ??
+                                Number((form.price * (1 - (form.discountPercent || 25) / 100)).toFixed(2)))
+                            ).toFixed(2)}{" "}
+                            JOD ({form.discountPercent || 25}% off)
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <p className="text-[11px] text-cyber-muted">
-                      Check the box above to activate sale pricing, set an original crossed-out price, and highlight this title in the “On Sale” shelf filter.
+                      Check the box above to activate sale pricing. You will be able to set a discount percentage slider or enter a flat sale price.
                     </p>
                   )}
                 </div>
@@ -600,21 +725,21 @@ export function AdminPage() {
                             </span>
                           </td>
                           <td className="px-5 py-4 font-mono font-bold text-sm">
-                            {game.onSale && game.originalPrice && game.originalPrice > game.price ? (
+                            {game.onSale && getDiscountPercent(game) > 0 ? (
                               <div>
                                 <div className="text-cyber-neonPink font-extrabold flex items-center gap-1.5">
-                                  <span>{game.price.toFixed(2)} JOD</span>
+                                  <span>{getActivePrice(game).toFixed(2)} JOD</span>
                                   <span className="text-[10px] bg-cyber-neonPink/20 text-cyber-neonPink px-1 py-0.2 rounded font-bold">
-                                    -{Math.round((1 - game.price / game.originalPrice) * 100)}%
+                                    -{getDiscountPercent(game)}%
                                   </span>
                                 </div>
                                 <div className="text-cyber-muted text-[11px] line-through font-normal">
-                                  was {game.originalPrice.toFixed(2)} JOD
+                                  was {getOriginalPrice(game).toFixed(2)} JOD
                                 </div>
                               </div>
                             ) : (
                               <span className={game.onSale ? "text-cyber-neonPink font-bold" : "text-cyber-electricBlue"}>
-                                {game.price.toFixed(2)} JOD
+                                {getActivePrice(game).toFixed(2)} JOD
                               </span>
                             )}
                           </td>

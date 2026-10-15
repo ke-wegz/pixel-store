@@ -9,7 +9,7 @@ export const seedGames: Game[] = [
     category: "action",
     categoryLabel: "Action",
     subtitle: "Brutal fighting, iconic rivalries",
-    price: 2.0,
+    price: 3.0,
     coverClass: "from-[#3b1236] to-[#160624]",
     accentColor: "#ff2a85",
     description:
@@ -21,6 +21,8 @@ export const seedGames: Game[] = [
     isNew: false,
     onSale: true,
     originalPrice: 3.0,
+    salePrice: 2.0,
+    discountPercent: 33,
   },
   {
     id: "tekken-8",
@@ -30,7 +32,7 @@ export const seedGames: Game[] = [
     category: "action",
     categoryLabel: "Action",
     subtitle: "The next generation of fists",
-    price: 2.0,
+    price: 3.5,
     coverClass: "from-[#17204a] to-[#0c0926]",
     accentColor: "#00d2ff",
     description:
@@ -42,6 +44,8 @@ export const seedGames: Game[] = [
     isNew: false,
     onSale: true,
     originalPrice: 3.5,
+    salePrice: 2.0,
+    discountPercent: 43,
   },
   {
     id: "stellar-blade",
@@ -111,7 +115,7 @@ export const seedGames: Game[] = [
     category: "story",
     categoryLabel: "Story",
     subtitle: "Neon nights in Night City",
-    price: 2.0,
+    price: 3.0,
     coverClass: "from-[#380e30] to-[#130419]",
     accentColor: "#ff2a85",
     description:
@@ -123,6 +127,8 @@ export const seedGames: Game[] = [
     isNew: false,
     onSale: true,
     originalPrice: 3.0,
+    salePrice: 2.0,
+    discountPercent: 33,
   },
   {
     id: "assassins-creed-shadows",

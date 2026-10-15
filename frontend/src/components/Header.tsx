@@ -144,23 +144,6 @@ export function Header() {
       {/* Mobile Navigation Drawer */}
       {mobileOpen && (
         <div className="md:hidden pt-4 pb-3 border-t border-cyber-border/80 mt-3 space-y-2.5 animate-fadeIn">
-          {/* Mobile Language Switcher Inside Drawer */}
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-cyber-surface/90 border border-cyber-border">
-            <span className="text-xs text-cyber-muted font-medium flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-cyber-lightBlue" />
-              {isAr ? "اللغة الحالية: العربية" : "Current Language: English"}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                toggleLang();
-                setMobileOpen(false);
-              }}
-              className="text-xs font-bold px-3 py-1 rounded-lg bg-cyber-purple hover:bg-cyber-neonPurple text-white"
-            >
-              {isAr ? "Switch to English" : "التبديل للعربية"}
-            </button>
-          </div>
 
           <a
             href="#shelf"

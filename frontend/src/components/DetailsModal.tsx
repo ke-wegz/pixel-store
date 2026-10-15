@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-import type { Game } from "../types";
+import { type Game, getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
 
 interface DetailsModalProps {
   game: Game | null;
@@ -12,6 +12,10 @@ export function DetailsModal({ game, onClose, onAdd }: DetailsModalProps) {
   const { isAr, t } = useLanguage();
 
   if (!game) return null;
+
+  const discount = getDiscountPercent(game);
+  const activePrice = getActivePrice(game);
+  const originalPrice = getOriginalPrice(game);
 
   return (
     <div
@@ -71,16 +75,16 @@ export function DetailsModal({ game, onClose, onAdd }: DetailsModalProps) {
                 <span className="text-[10px] font-mono text-cyber-muted uppercase">
                   {t.totalPrice}:
                 </span>
-                {game.onSale && game.originalPrice && game.originalPrice > game.price ? (
+                {game.onSale && discount > 0 ? (
                   <div className="flex items-baseline gap-2">
                     <span className="font-mono text-2xl font-black text-cyber-neonPink">
-                      {game.price.toFixed(2)} {t.currency}
+                      {activePrice.toFixed(2)} {t.currency}
                     </span>
                     <span className="font-mono text-xs text-cyber-muted line-through">
-                      {game.originalPrice.toFixed(2)} {t.currency}
+                      {originalPrice.toFixed(2)} {t.currency}
                     </span>
                     <span className="font-mono text-[10px] font-bold text-cyber-neonPink bg-cyber-neonPink/20 px-1.5 py-0.5 rounded">
-                      -{Math.round((1 - game.price / game.originalPrice) * 100)}%
+                      -{discount}%
                     </span>
                   </div>
                 ) : (
@@ -89,7 +93,7 @@ export function DetailsModal({ game, onClose, onAdd }: DetailsModalProps) {
                       game.onSale ? "text-cyber-neonPink" : "text-cyber-electricBlue"
                     }`}
                   >
-                    {game.price.toFixed(2)} {t.currency}
+                    {activePrice.toFixed(2)} {t.currency}
                   </div>
                 )}
               </div>

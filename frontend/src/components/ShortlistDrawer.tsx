@@ -4,6 +4,7 @@ import { Instagram } from "./icons/Instagram";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
 import { waLink, igDirectLink, copyTextToClipboard } from "../lib/messaging";
+import { getActivePrice, getOriginalPrice, getDiscountPercent } from "../types";
 
 export function ShortlistDrawer() {
   const { drawerOpen, closeDrawer, shortlist, updateQty, clear, totalPrice } = useCart();
@@ -20,10 +21,10 @@ export function ShortlistDrawer() {
         : "Hello Pixel Store! I want to order."
       : isAr
       ? `مرحباً متجر بيكسل! أود طلب الألعاب التالية:\n${shortlist
-          .map((i) => `• ${i.title} (${i.qty}x) - ${(i.price * i.qty).toFixed(2)} د.أ`)
+          .map((i) => `• ${i.title} (${i.qty}x) - ${(getActivePrice(i) * i.qty).toFixed(2)} د.أ`)
           .join("\n")}\n\nالمجموع الإجمالي: ${totalPrice.toFixed(2)} د.أ`
       : `Hello Pixel Store! I would like to order:\n${shortlist
-          .map((i) => `• ${i.title} (${i.qty}x) - ${(i.price * i.qty).toFixed(2)} JOD`)
+          .map((i) => `• ${i.title} (${i.qty}x) - ${(getActivePrice(i) * i.qty).toFixed(2)} JOD`)
           .join("\n")}\n\nTotal: ${totalPrice.toFixed(2)} JOD`;
 
   const waHref = waLink(orderMessage);
@@ -85,12 +86,12 @@ export function ShortlistDrawer() {
                   <div className={`flex-1 ${isAr ? "pl-3" : "pr-3"}`}>
                     <div className="text-xs font-bold text-white">{item.title}</div>
                     <div className="font-mono text-xs text-cyber-electricBlue mt-0.5 flex items-center gap-2">
-                      <span>
-                        {item.price.toFixed(2)} {t.currency}
+                      <span className={item.onSale ? "text-cyber-neonPink font-extrabold" : ""}>
+                        {getActivePrice(item).toFixed(2)} {t.currency}
                       </span>
-                      {item.onSale && item.originalPrice && (
+                      {item.onSale && getDiscountPercent(item) > 0 && (
                         <span className="text-[10px] text-cyber-muted line-through">
-                          {item.originalPrice.toFixed(2)} {t.currency}
+                          {getOriginalPrice(item).toFixed(2)} {t.currency}
                         </span>
                       )}
                     </div>
