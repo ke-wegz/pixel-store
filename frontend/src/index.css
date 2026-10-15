@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #090412;
+}
+::-webkit-scrollbar-thumb {
+  background: #31145e;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a855f7;
+}
+
+.glass-panel {
+  background: rgba(17, 7, 34, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(24, 10, 48, 0.85) 0%, rgba(17, 7, 34, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(0, 210, 255, 0.65);
+  box-shadow: 0 15px 35px -10px rgba(0, 210, 255, 0.3), 0 0 25px -5px rgba(255, 42, 133, 0.25);
+  transform: translateY(-4px);
+}
+
+.ambient-glow {
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  filter: blur(140px);
+  pointer-events: none;
+  opacity: 0.22;
+  z-index: 0;
+}
+
+.text-glow-pink {
+  text-shadow: 0 0 15px rgba(255, 42, 133, 0.6);
+}
+.text-glow-blue {
+  text-shadow: 0 0 15px rgba(0, 210, 255, 0.6);
+}
+
+.cyber-grid {
+  background-size: 32px 32px;
+  background-image:
+    linear-gradient(to right, rgba(168, 85, 247, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(168, 85, 247, 0.04) 1px, transparent 1px);
+}
+
+body {
+  @apply bg-cyber-bg text-cyber-pureWhite font-sans antialiased selection:bg-cyber-neonPink selection:text-white min-h-screen relative overflow-x-hidden;
+}
