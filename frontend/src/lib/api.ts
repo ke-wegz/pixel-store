@@ -8,7 +8,8 @@ export interface ApiResponse<T> {
   data?: T;
 }
 
-const BASE_URL = "/api";
+const rawApiUrl = import.meta.env.VITE_API_URL || "";
+const BASE_URL = rawApiUrl ? `${rawApiUrl.replace(/\/$/, "")}/api` : "/api";
 
 export const api = {
   async getGames(): Promise<{ games: Game[]; source?: string }> {
