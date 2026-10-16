@@ -30,7 +30,7 @@ export function Header() {
         <div className="flex items-center gap-3.5" data-testid="brand-pixel-store">
           <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group">
             <div className="grid h-10 w-10 sm:h-11 sm:w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-tr from-cyber-neonPink via-cyber-purple to-cyber-electricBlue p-[2px] shadow-neon-pink group-hover:shadow-neon-blue transition-all">
-              <div className="h-full w-full bg-cyber-surface rounded-[10px] flex items-center justify-center p-1.5 overflow-hidden">
+              <div className="h-full w-full bg-cyber-surface rounded-[10px] flex items-center justify-center p-1 overflow-hidden">
                 <img
                   src={iconSvg}
                   alt="Pixel Store"

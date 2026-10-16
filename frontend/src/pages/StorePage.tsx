@@ -677,7 +677,7 @@ export function StorePage() {
         {/* Footer */}
         <footer className="flex flex-col justify-between gap-5 border-t border-cyber-border/70 py-8 text-xs text-cyber-muted sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-cyber-surface border border-cyber-border/80 p-1.5 shadow-sm">
+            <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-cyber-surface border border-cyber-border/80 p-1 shadow-sm">
               <img src={iconSvg} alt="Pixel Store" className="h-full w-full object-contain" />
             </div>
             <div>
