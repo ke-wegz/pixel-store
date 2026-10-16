@@ -1,26 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { collection, doc, onSnapshot, setDoc, deleteDoc } from "firebase/firestore";
 import { db, BUNDLES_COLLECTION, isFirebaseConfigured } from "../lib/firebase";
-import { seedBundles } from "../data/seedGames";
 import type { Bundle } from "../types";
 
-const LOCAL_STORAGE_KEY = "pixel_store_bundles";
-
 export function useBundles() {
-  const [bundles, setBundles] = useState<Bundle[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return seedBundles;
-  });
+  const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,42 +17,33 @@ export function useBundles() {
     const unsub = onSnapshot(
       collection(db, BUNDLES_COLLECTION),
       (snapshot) => {
-        if (!snapshot.empty) {
-          const list: Bundle[] = snapshot.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              name: String(data.name || d.id),
-              nameAr: data.nameAr ? String(data.nameAr) : undefined,
-              description: data.description ? String(data.description) : "",
-              price: Number(data.price || 0),
-              gameIds: Array.isArray(data.gameIds)
-                ? data.gameIds.map((g: unknown) => String(g))
-                : [],
-              coverImage: data.coverImage ? String(data.coverImage) : "",
-              badge: data.badge ? String(data.badge) : "",
-              inStock: data.inStock !== false,
-              featured: Boolean(data.featured),
-              createdAt: data.createdAt ? String(data.createdAt) : undefined,
-              updatedAt: data.updatedAt ? String(data.updatedAt) : undefined,
-            };
-          });
-          setBundles(list);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-          } catch {
-            // ignore
-          }
-        } else {
-          // If Firestore is empty, seed defaults into memory
-          setBundles(seedBundles);
-        }
+        const list: Bundle[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            name: String(data.name || d.id),
+            nameAr: data.nameAr ? String(data.nameAr) : undefined,
+            description: data.description ? String(data.description) : "",
+            price: Number(data.price || 0),
+            gameIds: Array.isArray(data.gameIds)
+              ? data.gameIds.map((g: unknown) => String(g))
+              : [],
+            coverImage: data.coverImage ? String(data.coverImage) : "",
+            badge: data.badge ? String(data.badge) : "",
+            inStock: data.inStock !== false,
+            featured: Boolean(data.featured),
+            createdAt: data.createdAt ? String(data.createdAt) : undefined,
+            updatedAt: data.updatedAt ? String(data.updatedAt) : undefined,
+          };
+        });
+        setBundles(list);
         setError(null);
         setLoading(false);
       },
       (err) => {
-        console.warn("Bundles snapshot warning (using defaults):", err);
+        console.error("Bundles snapshot error:", err);
         setError(err.message);
+        setBundles([]);
         setLoading(false);
       }
     );
@@ -121,15 +96,9 @@ export function useBundles() {
 
     setBundles((prev) => {
       const exists = prev.some((b) => b.id === id);
-      const next = exists
+      return exists
         ? prev.map((b) => (b.id === id ? cleanBundle : b))
         : [cleanBundle, ...prev];
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
     });
   }, []);
 
@@ -137,15 +106,7 @@ export function useBundles() {
     if (isFirebaseConfigured && db) {
       await deleteDoc(doc(db, BUNDLES_COLLECTION, id));
     }
-    setBundles((prev) => {
-      const next = prev.filter((b) => b.id !== id);
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+    setBundles((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
   return {
@@ -156,3 +117,4 @@ export function useBundles() {
     deleteBundle,
   };
 }
+

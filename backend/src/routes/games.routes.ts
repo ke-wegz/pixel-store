@@ -23,27 +23,21 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-// In-memory fallback catalog if Firestore is not reachable
-let inMemoryGames: Game[] = [...seedGames];
-
 // GET /api/games - List all games
 gamesRouter.get("/", async (_req: Request, res: Response) => {
   try {
     if (isFirebaseConfigured && db) {
       const snap = await getDocs(collection(db, GAMES_COLLECTION));
-      if (!snap.empty) {
-        const games = snap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        })) as Game[];
-        return res.json({ success: true, count: games.length, source: "firestore", data: games });
-      }
+      const games = snap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      })) as Game[];
+      return res.json({ success: true, count: games.length, source: "firestore", data: games });
     }
-    // Return fallback if Firestore empty or unconfigured
-    return res.json({ success: true, count: inMemoryGames.length, source: "seed_fallback", data: inMemoryGames });
+    return res.json({ success: true, count: 0, source: "firestore", data: [] });
   } catch (error) {
     console.error("Error fetching games from Firestore:", error);
-    return res.json({ success: true, count: inMemoryGames.length, source: "seed_fallback", data: inMemoryGames });
+    return res.status(500).json({ success: false, message: "Error fetching games from database", data: [] });
   }
 });
 
@@ -57,11 +51,6 @@ gamesRouter.get("/:id", async (req: Request, res: Response) => {
       if (snap.exists()) {
         return res.json({ success: true, data: { id: snap.id, ...snap.data() } });
       }
-    }
-
-    const found = inMemoryGames.find((g) => g.id === id);
-    if (found) {
-      return res.json({ success: true, data: found });
     }
     return res.status(404).json({ success: false, message: `Game with id '${id}' not found.` });
   } catch (error) {
@@ -116,7 +105,6 @@ gamesRouter.post("/", async (req: Request, res: Response) => {
     if (isFirebaseConfigured && db) {
       await setDoc(doc(db, GAMES_COLLECTION, id), newGame, { merge: true });
     }
-    inMemoryGames = [newGame, ...inMemoryGames.filter((g) => g.id !== id)];
     return res.status(201).json({ success: true, message: "Game created successfully.", data: newGame });
   } catch (error) {
     console.error("Error creating game:", error);
@@ -134,8 +122,6 @@ gamesRouter.put("/:id", async (req: Request, res: Response) => {
       const docRef = doc(db, GAMES_COLLECTION, id);
       await updateDoc(docRef, { ...updates, updatedAt: new Date().toISOString() });
     }
-
-    inMemoryGames = inMemoryGames.map((g) => (g.id === id ? { ...g, ...updates, updatedAt: new Date().toISOString() } : g));
     return res.json({ success: true, message: `Game '${id}' updated successfully.` });
   } catch (error) {
     console.error(`Error updating game ${id}:`, error);
@@ -150,7 +136,6 @@ gamesRouter.delete("/:id", async (req: Request, res: Response) => {
     if (isFirebaseConfigured && db) {
       await deleteDoc(doc(db, GAMES_COLLECTION, id));
     }
-    inMemoryGames = inMemoryGames.filter((g) => g.id !== id);
     return res.json({ success: true, message: `Game '${id}' deleted successfully.` });
   } catch (error) {
     console.error(`Error deleting game ${id}:`, error);
@@ -175,11 +160,9 @@ gamesRouter.post("/seed", async (_req: Request, res: Response) => {
       });
     }
 
-    inMemoryGames = [...seedGames];
-    return res.json({
-      success: true,
-      message: `Seeded ${seedGames.length} games into local memory (Firestore not connected).`,
-      count: seedGames.length,
+    return res.status(400).json({
+      success: false,
+      message: "Firestore not connected.",
     });
   } catch (error) {
     console.error("Error seeding games:", error);

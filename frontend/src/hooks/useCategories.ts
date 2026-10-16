@@ -1,63 +1,41 @@
 import { useState, useEffect, useCallback } from "react";
 import { collection, doc, onSnapshot, setDoc, deleteDoc } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../lib/firebase";
-import { DEFAULT_CATEGORIES, type Category } from "../types";
+import type { Category } from "../types";
 import { slugify } from "../lib/gameMapper";
 
 export const CATEGORIES_COLLECTION = "categories";
-const LOCAL_STORAGE_KEY = "pixel_store_custom_categories";
 
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return DEFAULT_CATEGORIES;
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Firestore realtime sync: pull pure categories from database
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
       setLoading(false);
+      setCategories([]);
       return;
     }
 
     const unsub = onSnapshot(
       collection(db, CATEGORIES_COLLECTION),
       (snapshot) => {
-        if (!snapshot.empty) {
-          const list: Category[] = snapshot.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              nameEn: String(data.nameEn || d.id),
-              nameAr: String(data.nameAr || data.nameEn || d.id),
-              createdAt: data.createdAt,
-            };
-          });
-          setCategories(list);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-          } catch {
-            // ignore
-          }
-        } else {
-          // If empty in database, fall back to defaults
-          setCategories(DEFAULT_CATEGORIES);
-        }
+        const list: Category[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            nameEn: String(data.nameEn || d.id),
+            nameAr: String(data.nameAr || data.nameEn || d.id),
+            createdAt: data.createdAt,
+          };
+        });
+        setCategories(list);
         setLoading(false);
       },
       (err) => {
-        console.warn("Categories snapshot warning (using defaults):", err);
+        console.error("Categories snapshot error:", err);
+        setCategories([]);
         setLoading(false);
       }
     );
@@ -89,15 +67,9 @@ export function useCategories() {
 
       setCategories((prev) => {
         const exists = prev.some((c) => c.id.toLowerCase() === id.toLowerCase());
-        const next = exists
+        return exists
           ? prev.map((c) => (c.id.toLowerCase() === id.toLowerCase() ? newCat : c))
           : [...prev, newCat];
-        try {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          // ignore
-        }
-        return next;
       });
     },
     []
@@ -107,15 +79,7 @@ export function useCategories() {
     if (isFirebaseConfigured && db) {
       await deleteDoc(doc(db, CATEGORIES_COLLECTION, id));
     }
-    setCategories((prev) => {
-      const next = prev.filter((c) => c.id.toLowerCase() !== id.toLowerCase());
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+    setCategories((prev) => prev.filter((c) => c.id.toLowerCase() !== id.toLowerCase()));
   }, []);
 
   return {
@@ -125,3 +89,4 @@ export function useCategories() {
     deleteCategory,
   };
 }
+
