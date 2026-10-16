@@ -13,14 +13,10 @@ interface GameCardProps {
 export function GameCard({ game, isFav, onToggleFav, onDetails, onAdd }: GameCardProps) {
   const { isAr, t } = useLanguage();
 
-  const categoryName =
-    game.category === "story"
-      ? t.story
-      : game.category === "strategy"
-      ? t.strategy
-      : game.category === "action"
-      ? t.action
-      : game.categoryLabel || game.category.toUpperCase();
+  const displayCategories =
+    game.categories && game.categories.length > 0
+      ? game.categories
+      : [game.category];
 
   const discount = getDiscountPercent(game);
   const activePrice = getActivePrice(game);
@@ -43,11 +39,28 @@ export function GameCard({ game, isFav, onToggleFav, onDetails, onAdd }: GameCar
           />
         ) : null}
         <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-cyber-purple/20 blur-xl" />
-        <div className="relative z-10 flex items-start justify-between">
-          <span className="font-mono rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[9px] uppercase tracking-wider text-white">
-            {categoryName}
-          </span>
-          <span className="font-mono text-xs font-bold text-cyber-electricBlue">{t.offlineTag}</span>
+        <div className="relative z-10 flex items-start justify-between gap-1">
+          <div className="flex flex-wrap gap-1 max-w-[70%]">
+            {displayCategories.map((cId) => {
+              const label =
+                cId === "story"
+                  ? t.story
+                  : cId === "strategy"
+                  ? t.strategy
+                  : cId === "action"
+                  ? t.action
+                  : cId.toUpperCase();
+              return (
+                <span
+                  key={cId}
+                  className="font-mono rounded-full border border-white/20 bg-black/50 px-2 py-0.5 text-[9px] uppercase tracking-wider text-white"
+                >
+                  {label}
+                </span>
+              );
+            })}
+          </div>
+          <span className="font-mono text-xs font-bold text-cyber-electricBlue shrink-0">{t.offlineTag}</span>
         </div>
 
         <div className="absolute left-5 right-5 top-12 z-10 flex flex-wrap gap-1 sm:left-6 sm:right-6">

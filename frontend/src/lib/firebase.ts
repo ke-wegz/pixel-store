@@ -27,3 +27,5 @@ if (isFirebaseConfigured) {
 
 export { auth, db };
 export const GAMES_COLLECTION = "games";
+export const BUNDLES_COLLECTION = "bundles";
+export const CATEGORIES_COLLECTION = "categories";

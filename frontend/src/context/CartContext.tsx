@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { type Game, type ShortlistItem, getActivePrice } from "../types";
+import { type Game, type Bundle, type ShortlistItem, getActivePrice } from "../types";
 
 interface CartContextValue {
   shortlist: ShortlistItem[];
@@ -13,6 +13,7 @@ interface CartContextValue {
   openDrawer: () => void;
   closeDrawer: () => void;
   addToShortlist: (game: Game) => void;
+  addBundleToShortlist: (bundle: Bundle, gamesInBundle: Game[]) => void;
   updateQty: (id: string, delta: number) => void;
   clear: () => void;
   totalCount: number;
@@ -46,6 +47,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
             );
           }
           return [...prev, { ...game, qty: 1 }];
+        });
+        setDrawerOpen(true);
+      },
+      addBundleToShortlist: (bundle, gamesInBundle) => {
+        const bundleTitle = `🎁 [Bundle] ${bundle.name}`;
+        const gameTitles = gamesInBundle.map((g) => g.title).join(", ");
+        const bundleItem: ShortlistItem = {
+          id: `bundle-${bundle.id}`,
+          title: `${bundleTitle} (${gameTitles})`,
+          tagCode: "BUNDLE",
+          abbrev: "BDL",
+          category: "bundle",
+          categoryLabel: "Bundle",
+          categories: ["bundle"],
+          subtitle: `${gamesInBundle.length} games included in pack`,
+          price: bundle.price,
+          coverClass: "from-[#4a154b] to-[#120726]",
+          accentColor: "#f43f5e",
+          description: bundle.description || "",
+          specs: "Full offline Steam activation for all games",
+          coverImage: bundle.coverImage || "",
+          inStock: true,
+          featured: Boolean(bundle.featured),
+          isNew: false,
+          onSale: false,
+          qty: 1,
+        };
+
+        setShortlist((prev) => {
+          const existing = prev.find((item) => item.id === bundleItem.id);
+          if (existing) {
+            return prev.map((item) =>
+              item.id === bundleItem.id ? { ...item, qty: item.qty + 1 } : item,
+            );
+          }
+          return [...prev, bundleItem];
         });
         setDrawerOpen(true);
       },

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { gamesRouter } from "./routes/games.routes.js";
+import { bundlesRouter } from "./routes/bundles.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { isFirebaseConfigured } from "./config/firebase.js";
 
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/games", gamesRouter);
+app.use("/api/bundles", bundlesRouter);
 app.use("/api/auth", authRouter);
 
 // Health check

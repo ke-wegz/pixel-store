@@ -50,9 +50,22 @@ export function DetailsModal({ game, onClose, onAdd }: DetailsModalProps) {
               />
             ) : null}
             <div className="relative text-left" dir={isAr ? "rtl" : "ltr"}>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-cyber-electricBlue bg-black/40 px-2.5 py-1 rounded border border-white/10">
-                {game.categoryLabel} • {t.detailsOfflineBadge}
-              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(game.categories && game.categories.length > 0
+                  ? game.categories
+                  : [game.category]
+                ).map((cId) => (
+                  <span
+                    key={cId}
+                    className="font-mono text-[10px] uppercase tracking-wider text-cyber-electricBlue bg-black/60 px-2.5 py-1 rounded border border-white/10"
+                  >
+                    {cId}
+                  </span>
+                ))}
+                <span className="font-mono text-[10px] uppercase tracking-wider text-cyber-neonPink bg-black/60 px-2.5 py-1 rounded border border-white/10">
+                  {t.detailsOfflineBadge}
+                </span>
+              </div>
               <h3 className="font-display text-3xl font-extrabold text-white mt-3">{game.title}</h3>
               <p className="font-mono text-xs text-cyber-muted mt-1">{game.tagCode}</p>
             </div>

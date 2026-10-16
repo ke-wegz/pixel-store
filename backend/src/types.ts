@@ -14,6 +14,7 @@ export interface Game {
   abbrev: string;
   category: GameCategory;
   categoryLabel: string;
+  categories?: string[];
   subtitle: string;
   price: number;
   coverClass: string;
@@ -28,6 +29,21 @@ export interface Game {
   originalPrice?: number;
   salePrice?: number;
   discountPercent?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Bundle {
+  id: string;
+  name: string;
+  nameAr?: string;
+  description?: string;
+  price: number;
+  gameIds: string[];
+  coverImage?: string;
+  badge?: string;
+  inStock: boolean;
+  featured?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

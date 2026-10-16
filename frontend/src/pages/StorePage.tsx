@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Check,
   ChevronDown,
   Clock,
   Flame,
@@ -9,6 +10,7 @@ import {
   Gamepad2,
   HelpCircle,
   MessageCircle,
+  Package,
   Search,
   ShieldCheck,
   Sparkles,
@@ -19,42 +21,50 @@ import iconSvg from "../assets/icon.svg";
 import { Header } from "../components/Header";
 import { GameCard } from "../components/GameCard";
 import { DetailsModal } from "../components/DetailsModal";
+import { BundleCard } from "../components/BundleCard";
+import { BundleModal } from "../components/BundleModal";
 import { ShortlistDrawer } from "../components/ShortlistDrawer";
 import { useCart } from "../context/CartContext";
 import { useGames } from "../hooks/useGames";
+import { useBundles } from "../hooks/useBundles";
 import { useLanguage } from "../context/LanguageContext";
 import { faqsData } from "../lib/translations";
 import { waLink } from "../lib/messaging";
 import { useCategories } from "../hooks/useCategories";
-import type { Category, Game, GameCategory } from "../types";
-
-type ShelfFilter = "all" | "sale" | GameCategory;
+import type { Category, Game, Bundle } from "../types";
 
 function matchesCategory(game: Game, cat: Category): boolean {
-  const gCat = (game.category || "").trim().toLowerCase();
+  const gCats = (game.categories && game.categories.length > 0
+    ? game.categories
+    : [game.category || ""]
+  ).map((c) => c.trim().toLowerCase());
+
   const gLabel = (game.categoryLabel || "").trim().toLowerCase();
   const cId = (cat.id || "").trim().toLowerCase();
   const cEn = (cat.nameEn || "").trim().toLowerCase();
   const cAr = (cat.nameAr || "").trim().toLowerCase();
 
   return (
-    gCat === cId ||
-    gCat === cEn ||
-    (cAr !== "" && gCat === cAr) ||
-    (gLabel !== "" && (gLabel === cId || gLabel === cEn || gLabel === cAr))
+    gCats.includes(cId) ||
+    gCats.includes(cEn) ||
+    (cAr !== "" && gCats.includes(cAr)) ||
+    (gLabel !== "" && (gLabel.includes(cId) || gLabel.includes(cEn) || gLabel.includes(cAr)))
   );
 }
 
 export function StorePage() {
   const { games, loading, error } = useGames();
+  const { bundles } = useBundles();
   const { categories } = useCategories();
-  const { addToShortlist } = useCart();
+  const { addToShortlist, addBundleToShortlist } = useCart();
   const { isAr, lang, t } = useLanguage();
 
-  const [category, setCategory] = useState<ShelfFilter>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [onlySale, setOnlySale] = useState(false);
   const [query, setQuery] = useState("");
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
   const [openFaq, setOpenFaq] = useState(0);
 
   const faqs = faqsData[lang];
@@ -73,29 +83,40 @@ export function StorePage() {
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     return games.filter((game) => {
-      let matchCat = true;
-      if (category === "all") {
-        matchCat = true;
-      } else if (category === "sale") {
-        matchCat = Boolean(game.onSale);
-      } else {
-        const activeCat = categories.find(
-          (c) => c.id.toLowerCase() === category.toLowerCase()
-        );
-        matchCat = activeCat
-          ? matchesCategory(game, activeCat)
-          : game.category.toLowerCase() === category.toLowerCase();
+      if (onlySale && !game.onSale) {
+        return false;
       }
-      const matchQuery =
-        !q ||
-        game.title.toLowerCase().includes(q) ||
-        game.subtitle.toLowerCase().includes(q) ||
-        game.description.toLowerCase().includes(q);
-      return matchCat && matchQuery;
+      if (selectedCategories.length > 0) {
+        const activeCats = categories.filter((c) =>
+          selectedCategories.some((sc) => sc.toLowerCase() === c.id.toLowerCase())
+        );
+        const matchesAny = activeCats.some((cat) => matchesCategory(game, cat));
+        if (!matchesAny) return false;
+      }
+      if (q) {
+        const matchQuery =
+          game.title.toLowerCase().includes(q) ||
+          game.subtitle.toLowerCase().includes(q) ||
+          game.description.toLowerCase().includes(q);
+        if (!matchQuery) return false;
+      }
+      return true;
     });
-  }, [games, category, query, categories]);
+  }, [games, selectedCategories, onlySale, query, categories]);
 
   const detailsGame = games.find((g) => g.id === detailsId) ?? null;
+
+  function toggleCategory(catId: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
+    );
+  }
+
+  function clearAllFilters() {
+    setSelectedCategories([]);
+    setOnlySale(false);
+    setQuery("");
+  }
 
   function toggleFav(id: string) {
     setFavorites((prev) => {
@@ -109,11 +130,6 @@ export function StorePage() {
   function padCount(n: number) {
     return n < 10 ? `0${n}` : String(n);
   }
-
-  const tabClass = (id: ShelfFilter) =>
-    category === id
-      ? "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-neonPink text-white shadow-neon-pink"
-      : "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-surface text-cyber-muted hover:text-white border border-cyber-border";
 
   return (
     <div
@@ -231,6 +247,46 @@ export function StorePage() {
           </div>
         </section>
 
+        {/* Exclusive Bundles Section */}
+        <section id="bundles" className="scroll-mt-8 border-t border-cyber-border/70 py-16 sm:py-24">
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+            <div>
+              <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-cyber-neonPink font-bold">
+                <span className="h-0.5 w-6 bg-cyber-neonPink" />
+                {t.bundlesBadge}
+              </div>
+              <h2 className="font-display mt-3 max-w-xl text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+                {t.bundlesTitle1}
+                <br />
+                <span className="text-cyber-electricBlue text-glow-blue">{t.bundlesTitle2}</span>
+              </h2>
+            </div>
+            <div className="max-w-md text-xs sm:text-sm leading-6 text-cyber-muted">
+              {t.bundlesSubtitle}
+            </div>
+          </div>
+
+          {bundles.length > 0 ? (
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {bundles.map((bundle) => (
+                <BundleCard
+                  key={bundle.id}
+                  bundle={bundle}
+                  allGames={games}
+                  onInspect={setSelectedBundle}
+                  onAdd={addBundleToShortlist}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 border border-dashed border-cyber-border rounded-2xl mt-8">
+              <Package className="w-10 h-10 text-cyber-neonPink mx-auto mb-2 opacity-60" />
+              <h3 className="font-display text-lg font-bold text-white">{t.emptyBundlesTitle}</h3>
+              <p className="text-xs text-cyber-muted mt-1">{t.emptyBundlesDesc}</p>
+            </div>
+          )}
+        </section>
+
         {/* The Shelf Section */}
         <section id="shelf" className="scroll-mt-8 border-t border-cyber-border/70 py-16 sm:py-24">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
@@ -248,56 +304,147 @@ export function StorePage() {
             <div className="max-w-xs text-sm leading-6 text-cyber-muted">{t.shelfSubtitle}</div>
           </div>
 
-          {/* Toolbar */}
-          <div className="mt-10 flex flex-col gap-4 border-y border-cyber-border/80 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0 font-mono text-xs" role="tablist">
-              <button type="button" onClick={() => setCategory("all")} className={tabClass("all")}>
-                {t.allGames} <span className="ml-1 text-[10px] opacity-80">{padCount(counts.all)}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategory("sale")}
-                className={
-                  category === "sale"
-                    ? "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-gradient-to-r from-cyber-neonPink to-cyber-purple text-white shadow-neon-pink flex items-center gap-1.5"
-                    : "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-surface text-cyber-neonPink hover:text-white border border-cyber-neonPink/40 hover:border-cyber-neonPink flex items-center gap-1.5"
-                }
-              >
-                <Flame className="w-3.5 h-3.5 text-cyber-neonPink animate-pulse" />
-                <span>{t.onSaleTab}</span>
-                <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-cyber-neonPink/20 text-white font-mono">
-                  {padCount(counts.sale)}
-                </span>
-              </button>
-              {categories.map((cat) => (
+          {/* Multi-Category Toolbar */}
+          <div className="mt-10 flex flex-col gap-3.5 border-y border-cyber-border/80 py-4">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 font-mono text-xs" role="tablist">
+                {/* "All Games" Button */}
                 <button
-                  key={cat.id}
                   type="button"
-                  onClick={() => setCategory(cat.id)}
-                  className={tabClass(cat.id)}
+                  onClick={() => {
+                    setSelectedCategories([]);
+                    setOnlySale(false);
+                  }}
+                  className={
+                    selectedCategories.length === 0 && !onlySale
+                      ? "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-neonPink text-white shadow-neon-pink"
+                      : "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-surface text-cyber-muted hover:text-white border border-cyber-border"
+                  }
                 >
-                  {isAr ? cat.nameAr : cat.nameEn}{" "}
-                  <span className="ml-1 text-[10px] opacity-80">
-                    {padCount(counts[cat.id] || 0)}
+                  {t.allGames} <span className="ml-1 text-[10px] opacity-80">{padCount(counts.all)}</span>
+                </button>
+
+                {/* "On Sale" Filter Button */}
+                <button
+                  type="button"
+                  onClick={() => setOnlySale((prev) => !prev)}
+                  className={
+                    onlySale
+                      ? "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-gradient-to-r from-cyber-neonPink to-cyber-purple text-white shadow-neon-pink flex items-center gap-1.5"
+                      : "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-surface text-cyber-neonPink hover:text-white border border-cyber-neonPink/40 hover:border-cyber-neonPink flex items-center gap-1.5"
+                  }
+                >
+                  <Flame className="w-3.5 h-3.5 text-cyber-neonPink animate-pulse" />
+                  <span>{t.onSaleTab}</span>
+                  {onlySale && <Check className="w-3.5 h-3.5 text-white" />}
+                  <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-cyber-neonPink/20 text-white font-mono">
+                    {padCount(counts.sale)}
                   </span>
                 </button>
-              ))}
+
+                {/* Multi-Category Filter Buttons */}
+                {categories.map((cat) => {
+                  const isSelected = selectedCategories.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => toggleCategory(cat.id)}
+                      className={
+                        isSelected
+                          ? "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-electricBlue text-cyber-bg shadow-neon-blue flex items-center gap-1.5 font-bold"
+                          : "shelf-tab whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-all bg-cyber-surface text-cyber-muted hover:text-white border border-cyber-border flex items-center gap-1.5"
+                      }
+                    >
+                      {isSelected && <Check className="w-3.5 h-3.5 text-cyber-bg stroke-[3]" />}
+                      <span>{isAr ? cat.nameAr : cat.nameEn}</span>
+                      <span className="ml-1 text-[10px] opacity-80">
+                        {padCount(counts[cat.id] || 0)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative block shrink-0 lg:w-72">
+                <Search
+                  className={`w-4 h-4 absolute ${
+                    isAr ? "right-3.5" : "left-3.5"
+                  } top-1/2 -translate-y-1/2 text-cyber-muted pointer-events-none`}
+                />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t.searchPlaceholder}
+                  className={`h-10 w-full rounded-xl border border-cyber-border bg-cyber-surface/90 ${
+                    isAr ? "pr-10 pl-3.5" : "pl-10 pr-3.5"
+                  } text-xs text-white placeholder-cyber-muted outline-none focus:border-cyber-electricBlue focus:ring-1 focus:ring-cyber-electricBlue transition-all`}
+                  type="search"
+                />
+              </div>
             </div>
 
-            <div className="relative block shrink-0 lg:w-72">
-              <Search
-                className={`w-4 h-4 absolute ${isAr ? "right-3.5" : "left-3.5"
-                  } top-1/2 -translate-y-1/2 text-cyber-muted pointer-events-none`}
-              />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t.searchPlaceholder}
-                className={`h-10 w-full rounded-xl border border-cyber-border bg-cyber-surface/90 ${isAr ? "pr-10 pl-3.5" : "pl-10 pr-3.5"
-                  } text-xs text-white placeholder-cyber-muted outline-none focus:border-cyber-electricBlue focus:ring-1 focus:ring-cyber-electricBlue transition-all`}
-                type="search"
-              />
-            </div>
+            {/* Active Filters Pill Bar (Allows removing any filter or clearing all) */}
+            {(selectedCategories.length > 0 || onlySale || query) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                <span className="font-mono text-[10px] uppercase text-cyber-muted font-bold">
+                  {isAr ? "الفلاتر النشطة:" : "Active Filters:"}
+                </span>
+                {onlySale && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-cyber-neonPink/20 text-cyber-neonPink border border-cyber-neonPink/40">
+                    🔥 {t.onSaleTab}
+                    <button
+                      type="button"
+                      onClick={() => setOnlySale(false)}
+                      className="hover:text-white transition-colors"
+                      title="Remove filter"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                {selectedCategories.map((cId) => {
+                  const catObj = categories.find((c) => c.id === cId);
+                  return (
+                    <span
+                      key={cId}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-cyber-electricBlue/20 text-cyber-electricBlue border border-cyber-electricBlue/40"
+                    >
+                      {isAr ? catObj?.nameAr || cId : catObj?.nameEn || cId}
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(cId)}
+                        className="hover:text-white transition-colors ml-0.5"
+                        title="Remove category"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  );
+                })}
+                {query && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono bg-cyber-purple/20 text-cyber-neonPurple border border-cyber-purple/40">
+                    "{query}"
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      className="hover:text-white transition-colors ml-0.5"
+                      title="Clear search"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="font-mono text-[10px] text-cyber-muted hover:text-cyber-neonPink underline ml-auto transition-colors"
+                >
+                  {t.clearCategoryFilters}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="mt-6 flex items-center justify-between">
@@ -334,10 +481,7 @@ export function StorePage() {
               {games.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setCategory("all");
-                    setQuery("");
-                  }}
+                  onClick={clearAllFilters}
                   className="mt-4 px-4 py-2 rounded-xl bg-cyber-purple hover:bg-cyber-neonPurple text-white text-xs font-semibold"
                 >
                   {t.showAll(games.length)}
@@ -554,6 +698,12 @@ export function StorePage() {
         game={detailsGame}
         onClose={() => setDetailsId(null)}
         onAdd={addToShortlist}
+      />
+      <BundleModal
+        bundle={selectedBundle}
+        allGames={games}
+        onClose={() => setSelectedBundle(null)}
+        onAddBundle={addBundleToShortlist}
       />
     </div>
   );

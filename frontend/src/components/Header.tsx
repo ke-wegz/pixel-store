@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Package,
   Layers,
   CheckCircle2,
   Sparkles,
@@ -53,6 +54,9 @@ export function Header() {
           className="hidden items-center gap-6 lg:gap-8 text-xs font-semibold uppercase tracking-wider text-cyber-muted md:flex"
           aria-label="Primary navigation"
         >
+          <a href="#bundles" className="transition-colors hover:text-cyber-neonPink flex items-center gap-1.5 text-cyber-neonPink font-bold">
+            <Package className="w-3.5 h-3.5 text-cyber-neonPink" /> {t.bundlesNav}
+          </a>
           <a href="#shelf" className="transition-colors hover:text-cyber-electricBlue flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-cyber-electricBlue" /> {t.shelf}
           </a>
@@ -153,6 +157,14 @@ export function Header() {
       {mobileOpen && (
         <div className="md:hidden pt-4 pb-3 border-t border-cyber-border/80 mt-3 space-y-2.5 animate-fadeIn">
 
+          <a
+            href="#bundles"
+            onClick={() => setMobileOpen(false)}
+            className="block px-3 py-2 rounded-lg text-xs font-bold text-cyber-neonPink hover:bg-cyber-purple/30 flex items-center gap-2"
+          >
+            <Package className="w-3.5 h-3.5" />
+            {t.bundlesNav}
+          </a>
           <a
             href="#shelf"
             onClick={() => setMobileOpen(false)}

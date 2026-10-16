@@ -9,14 +9,33 @@ function asCategory(value: unknown): string {
 }
 
 export function gameFromDoc(id: string, data: DocumentData): Game {
-  const category = asCategory(data.category);
+  const primaryCat = asCategory(data.category);
+  let categories: string[] = [];
+  if (Array.isArray(data.categories) && data.categories.length > 0) {
+    categories = data.categories
+      .map((c) => String(c).trim().toLowerCase())
+      .filter(Boolean);
+  } else if (primaryCat) {
+    categories = [primaryCat];
+  } else {
+    categories = ["action"];
+  }
+
+  const category = categories[0] || primaryCat || "action";
+  const categoryLabel = String(
+    data.categoryLabel ??
+      CATEGORY_LABELS[category] ??
+      category.charAt(0).toUpperCase() + category.slice(1)
+  );
+
   return {
     id,
     title: String(data.title ?? ""),
     tagCode: String(data.tagCode ?? ""),
     abbrev: String(data.abbrev ?? ""),
     category,
-    categoryLabel: String(data.categoryLabel ?? CATEGORY_LABELS[category] ?? category),
+    categoryLabel,
+    categories,
     subtitle: String(data.subtitle ?? ""),
     price: Number(data.price ?? 0),
     coverClass: String(data.coverClass ?? "from-[#2b1747] to-[#130726]"),
@@ -44,18 +63,25 @@ export function gameFromDoc(id: string, data: DocumentData): Game {
 }
 
 export function gameToPayload(game: Game): Record<string, unknown> {
-  const category = (game.category || "action").trim().toLowerCase();
+  const categories =
+    Array.isArray(game.categories) && game.categories.length > 0
+      ? game.categories.map((c) => c.trim().toLowerCase()).filter(Boolean)
+      : [(game.category || "action").trim().toLowerCase()];
+
+  const primaryCategory = categories[0] || "action";
   const categoryLabel =
     (game.categoryLabel && game.categoryLabel.trim()) ||
-    CATEGORY_LABELS[category] ||
-    category.charAt(0).toUpperCase() + category.slice(1);
+    categories
+      .map((c) => CATEGORY_LABELS[c] || c.charAt(0).toUpperCase() + c.slice(1))
+      .join(" / ");
 
   const payload: Record<string, unknown> = {
     title: game.title || "",
     tagCode: game.tagCode || "",
     abbrev: game.abbrev || "",
-    category,
+    category: primaryCategory,
     categoryLabel,
+    categories,
     subtitle: game.subtitle || "",
     price: Number(game.price) || 0,
     coverClass: game.coverClass || "from-[#2b1747] to-[#130726]",
@@ -102,6 +128,7 @@ export function emptyGame(): Game {
     abbrev: "",
     category: "action",
     categoryLabel: "Action",
+    categories: ["action"],
     subtitle: "",
     price: 2,
     coverClass: "from-[#2b1747] to-[#130726]",
